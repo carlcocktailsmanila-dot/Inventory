@@ -641,7 +641,6 @@ if (!closed) {
   }
   return html;
 }
-
 function tile(numStr, label, cls) {
   return '<div class="tile ' + (cls || '') + '"><div class="t-num">' + numStr + '</div><div class="t-label">' + label + '</div></div>';
 }
