@@ -42,9 +42,8 @@ function doLogout() {
 }
 
 function renderLoginScreen(deniedEmail) {
-  document.querySelectorAll('.bottomnav button').forEach(function (b) {
-    b.classList.remove('active');
-  });
+  var nav = document.querySelector('.bottomnav');
+  if (nav) nav.style.display = 'none';
   var v = document.getElementById('view');
   v.innerHTML =
     '<div style="text-align:center;padding:60px 20px">' +
@@ -250,6 +249,9 @@ function go(tab, param) {
 }
 
 function render() {
+  if (fbAuth && !currentUser) { renderLoginScreen(); return; }
+  var nav = document.querySelector('.bottomnav');
+  if (nav) nav.style.display = '';
   var navTab = route.tab;
   if (navTab === 'eventDetail') navTab = 'events';
   if (navTab === 'leadDetail') navTab = 'leads';
