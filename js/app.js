@@ -34,10 +34,6 @@ function switchAuthMode(mode) {
   authMode = mode;
   renderLoginScreen();
 }
-
-function togglePasswordView() {
-}
-
 function togglePasswordView() {
   var input = document.getElementById('login_pass');
   var btn = event.target;
