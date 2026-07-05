@@ -1129,12 +1129,32 @@ function openMenu() {
   var html = '<h3>Menu</h3>' +
     '<div class="hint" style="margin-bottom:10px">' + itemCount + ' items · ' + evCount + ' events</div>' +
     (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b></div>' : '') +
-    '<button class="menu-item" onclick="exportData()">💾 Export backup (JSON)</button>' +
-    '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">📥 Import backup</button>' +
-    '<button class="menu-item danger" onclick="resetData()">🗑️ Delete all data</button>' +
-    '<button class="menu-item" onclick="doLogout()">🚪 Sign out</button>' +
-    '<div class="hint" style="margin-top:12px">💡 Data is stored in the cloud, so everyone with access can see it.</div>';
+    '<button class="menu-item" onclick="openChangePassword()">🔑 Change Password</button>' +
+    '<button class="menu-item" onclick="doLogout()">🚪 Sign out</button>';
   openModal(html);
+}
+
+function openChangePassword() {
+  var html = '<h3>Change Password</h3>' +
+    '<div class="field"><label>New Password</label><input id="cp_new" type="password" placeholder="Min 6 characters"></div>' +
+    '<div class="field"><label>Confirm New Password</label><input id="cp_confirm" type="password" placeholder="Retype new password"></div>' +
+    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doChangePassword()">Update Password</button></div>';
+  openModal(html);
+}
+
+function doChangePassword() {
+  var pass1 = document.getElementById('cp_new').value;
+  var pass2 = document.getElementById('cp_confirm').value;
+  if (!pass1 || !pass2) { alert('Please fill in both fields.'); return; }
+  if (pass1.length < 6) { alert('Password must be at least 6 characters.'); return; }
+  if (pass1 !== pass2) { alert('Passwords do not match.'); return; }
+  currentUser.updatePassword(pass1).then(function () {
+    closeModal();
+    toast('✅ Password updated');
+  }).catch(function (err) {
+    console.error('Change password error', err);
+    alert('Could not update password: ' + err.message);
+  });
 }
 
 function exportData() {
