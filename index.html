@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
@@ -24,9 +23,7 @@
     <button class="icon-btn" onclick="openMenu()" title="Menu">⋮</button>
   </div>
 </header>
-
 <main id="view"></main>
-
 <nav class="bottomnav">
   <button data-tab="db"      onclick="go('db')"><span>🗄️</span>Database</button>
   <button data-tab="events"  onclick="go('events')"><span>🎪</span>Events</button>
@@ -34,19 +31,17 @@
   <button data-tab="food"    onclick="go('food')"><span>🍲</span>Food</button>
   <button data-tab="leads"   onclick="go('leads')"><span>👤</span>Leads</button>
 </nav>
-
 <!-- generic modal -->
 <div id="modalOverlay" class="modal-overlay hidden" onclick="overlayClick(event)">
   <div id="modal" class="modal"></div>
 </div>
-
 <!-- hidden inputs -->
 <input type="file" id="photoInput" accept="image/*" class="hidden-input">
 <input type="file" id="importInput" accept="application/json,.json" class="hidden-input">
-
 <div id="toast" class="toast hidden"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyAQ-a7gAcDJHqio3-umcu5TpN5UK_E9w2o",
