@@ -1,7 +1,8 @@
 /* ============================================================
    Inventory App — Event Equipment · Toolbox · Food
    Tatlong sector, per-event tracking, checker accountability.
-   Data ay naka-save sa device (localStorage) + export/import backup.
+   Data ay naka-save sa cloud (Firestore) + local cache (localStorage).
+   May Google Sign-In login — allowlist lang ang makakapasok.
    ============================================================ */
 
 'use strict';
@@ -9,11 +10,55 @@
 var LS_KEY = 'cci-inventory-v1';
 var PESO = '₱';
 
-/* ---------- state ---------- */
-var db = loadDB();
+/* ---------- Firebase / Auth ---------- */
 var fsDB = null;
 try { fsDB = firebase.firestore(); } catch (e) { console.error('Firestore init error', e); }
 var CLOUD_DOC = fsDB ? fsDB.collection('inventory').doc('main') : null;
+
+var fbAuth = null;
+try { fbAuth = firebase.auth(); } catch (e) { console.error('Auth init error', e); }
+
+// I-PALITAN ito ng totoong Gmail ng bawat staff (lowercase, walang extra space)
+var ALLOWED_EMAILS = [
+  'carl.cocktailsmanila@gmail.com'
+];
+
+var currentUser = null;
+
+function isAllowed(email) {
+  return email && ALLOWED_EMAILS.indexOf(email.toLowerCase()) >= 0;
+}
+
+function doGoogleLogin() {
+  var provider = new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(provider).catch(function (err) {
+    console.error('Login error', err);
+    alert('Hindi na-login: ' + err.message);
+  });
+}
+
+function doLogout() {
+  fbAuth.signOut();
+}
+
+function renderLoginScreen(deniedEmail) {
+  document.querySelectorAll('.bottomnav button').forEach(function (b) {
+    b.classList.remove('active');
+  });
+  var v = document.getElementById('view');
+  v.innerHTML =
+    '<div style="text-align:center;padding:60px 20px">' +
+      '<div style="font-size:48px;margin-bottom:12px">📦</div>' +
+      '<h2 style="margin-bottom:6px">Cocktails Manila Inventory</h2>' +
+      (deniedEmail
+        ? '<div class="notice red" style="max-width:320px;margin:12px auto">🚫 Hindi awtorisado ang account na "' + esc(deniedEmail) + '". Pakikontak si Meanne kung kailangan mo ng access.</div>'
+        : '<p class="hint">Mag-login gamit ang Google account na binigay sa iyo.</p>') +
+      '<button class="btn btn-primary" style="margin-top:16px" onclick="doGoogleLogin()">🔐 Sign in with Google</button>' +
+    '</div>';
+}
+
+/* ---------- state ---------- */
+var db = loadDB();
 var route = { tab: 'events', eventId: null, lead: null };
 var dbSearch = '';
 var dbFilter = 'all';
@@ -484,7 +529,7 @@ function renderEventDetail(id) {
 
   if (!closed && pend > 0) html += '<div class="notice red">⚠️ May ' + pend + ' item na hindi pa naibabalik.</div>';
   if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">✅ Kumpleto ang naibalik. Pwede nang isara ang event.</div>';
- if (closed && issues > 0) html += '<div class="notice amber">⚠️ May ' + issues + ' item na nasira o nawala sa event na ito (' + money(eventDamageValue(ev)) + ').</div>';
+  if (closed && issues > 0) html += '<div class="notice amber">⚠️ May ' + issues + ' item na nasira o nawala sa event na ito (' + money(eventDamageValue(ev)) + ').</div>';
 
   // summary tiles
   html += '<div class="tiles">' +
@@ -924,7 +969,7 @@ function renderLeads() {
   var order = [];
   db.events.forEach(function (ev) {
     var name = (ev.lead || '').trim() || '(walang lead)';
-   if (!leads[name]) { leads[name] = { events: 0, open: 0, pending: 0, issues: 0, damageValue: 0 }; order.push(name); }
+    if (!leads[name]) { leads[name] = { events: 0, open: 0, pending: 0, issues: 0, damageValue: 0 }; order.push(name); }
     var L = leads[name];
     L.events++;
     if (ev.status === 'open') { L.open++; L.pending += eventPending(ev); }
@@ -1053,15 +1098,17 @@ document.getElementById('photoInput').addEventListener('change', function () {
   reader.readAsDataURL(file);
 });
 
-/* menu (⋮): backup, import, reset */
+/* menu (⋮): backup, import, reset, logout */
 function openMenu() {
   var itemCount = db.items.length, evCount = db.events.length;
   var html = '<h3>Menu</h3>' +
-    '<div class="hint" style="margin-bottom:10px">' + itemCount + ' items · ' + evCount + ' events · naka-save sa device na ito</div>' +
+    '<div class="hint" style="margin-bottom:10px">' + itemCount + ' items · ' + evCount + ' events</div>' +
+    (currentUser ? '<div class="hint" style="margin-bottom:10px">Naka-login bilang: <b>' + esc(currentUser.email) + '</b></div>' : '') +
     '<button class="menu-item" onclick="exportData()">💾 I-export ang backup (JSON)</button>' +
     '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">📥 Mag-import ng backup</button>' +
     '<button class="menu-item danger" onclick="resetData()">🗑️ Burahin lahat ng data</button>' +
-    '<div class="hint" style="margin-top:12px">💡 Ang data ay naka-save sa browser ng device na ito. Mag-export ng backup nang regular, lalo na bago mag-import o magpalit ng device.</div>';
+    '<button class="menu-item" onclick="doLogout()">🚪 Mag-logout</button>' +
+    '<div class="hint" style="margin-top:12px">💡 Ang data ay naka-save sa cloud, kaya kita ng lahat ng may access.</div>';
   openModal(html);
 }
 
@@ -1116,10 +1163,8 @@ function toast(msg) {
 }
 
 /* ---------- boot ---------- */
-/* ---------- boot ---------- */
-render();
-
-if (CLOUD_DOC) {
+function startCloudSync() {
+  if (!CLOUD_DOC) return;
   CLOUD_DOC.onSnapshot(function (snap) {
     if (snap.exists) {
       var remote = snap.data();
@@ -1138,3 +1183,22 @@ if (CLOUD_DOC) {
   });
 }
 
+if (fbAuth) {
+  fbAuth.onAuthStateChanged(function (user) {
+    if (user && isAllowed(user.email)) {
+      currentUser = user;
+      render();
+      startCloudSync();
+    } else if (user) {
+      currentUser = null;
+      renderLoginScreen(user.email);
+      fbAuth.signOut();
+    } else {
+      currentUser = null;
+      renderLoginScreen();
+    }
+  });
+} else {
+  render();
+  startCloudSync();
+}
