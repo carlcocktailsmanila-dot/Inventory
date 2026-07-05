@@ -157,6 +157,14 @@ function eventIssues(ev) {
   (ev.lines || []).forEach(function (l) { t += (l.damaged || 0) + (l.lost || 0); });
   return t;
 }
+function eventDamageValue(ev) {
+  var t = 0;
+  (ev.lines || []).forEach(function (l) {
+    var it = getItem(l.itemId);
+    if (it) t += ((l.damaged || 0) + (l.lost || 0)) * (it.price || 0);
+  });
+  return t;
+}
 function eventValueOut(ev) {
   var t = 0;
   (ev.lines || []).forEach(function (l) {
@@ -399,7 +407,7 @@ function eventCard(ev) {
   var issues = eventIssues(ev);
   var badge;
   if (ev.status === 'closed') {
-    badge = issues > 0 ? '<span class="badge b-amber">Sarado · may nasira/nawala</span>' : '<span class="badge b-gray">Sarado ✓</span>';
+    badge = issues > 0 ? '<span class="badge b-amber">Sarado · may nasira/nawala (' + money(eventDamageValue(ev)) + ')</span>' : '<span class="badge b-gray">Sarado ✓</span>';
   } else {
     badge = pend > 0 ? '<span class="badge b-red">' + pend + ' hindi pa naibabalik</span>' : '<span class="badge b-green">Kumpleto ang balik</span>';
   }
@@ -907,11 +915,12 @@ function renderLeads() {
   var order = [];
   db.events.forEach(function (ev) {
     var name = (ev.lead || '').trim() || '(walang lead)';
-    if (!leads[name]) { leads[name] = { events: 0, open: 0, pending: 0, issues: 0 }; order.push(name); }
+   if (!leads[name]) { leads[name] = { events: 0, open: 0, pending: 0, issues: 0, damageValue: 0 }; order.push(name); }
     var L = leads[name];
     L.events++;
     if (ev.status === 'open') { L.open++; L.pending += eventPending(ev); }
     L.issues += eventIssues(ev);
+    L.damageValue += eventDamageValue(ev);
   });
   order.sort();
 
@@ -924,7 +933,7 @@ function renderLeads() {
     var cleared = L.pending === 0 && L.issues === 0;
     var badge = cleared ? '<span class="badge b-green">✅ Cleared</span>' :
       (L.pending > 0 ? '<span class="badge b-red">⚠️ ' + L.pending + ' hindi naibabalik</span>' : '') +
-      (L.issues > 0 ? ' <span class="badge b-amber">' + L.issues + ' sira/nawala</span>' : '');
+      (L.issues > 0 ? ' <span class="badge b-amber">' + L.issues + ' sira/nawala · ' + money(L.damageValue) + '</span>' : '');
     html += '<div class="card tappable" onclick="go(\'leadDetail\',window._leadNames[' + i + '])">' +
       '<div class="row"><div class="thumb">👤</div>' +
       '<div class="grow"><div class="item-name">' + esc(name) + '</div>' +
@@ -940,10 +949,15 @@ function renderLeadDetail(name) {
     return ((ev.lead || '').trim() || '(walang lead)') === name;
   });
   evs.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+  var totalDamage = 0;
+  evs.forEach(function (ev) { totalDamage += eventDamageValue(ev); });
   var html = '<button class="back-btn" onclick="go(\'leads\')">← Bumalik sa Leads</button>';
   html += '<div class="card"><div class="row"><div class="thumb">👤</div><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
     '<div class="item-meta">' + evs.length + ' event record</div></div></div></div>';
+  if (totalDamage > 0) {
+    html += '<div class="tiles">' + tile(money(totalDamage), 'Kabuuang halaga ng sira/nawala', 'bad') + '</div>';
+  }
   evs.forEach(function (ev) { html += eventCard(ev); });
   return html;
 }
