@@ -143,8 +143,6 @@ function saveDB() {
 }
 
 function seedDB() {
-  // Sample items so the team sees something on first launch.
-  // Can be edited or deleted in the Database tab.
   function it(name, category, opts) {
     var o = opts || {};
     return {
@@ -152,8 +150,8 @@ function seedDB() {
       disposable: !!o.disposable,
       unit: o.unit || 'pcs',
       price: o.price || 0,
-      owned: o.owned || 0,       // for non-disposable (returnable)
-      stock: o.stock || 0,       // for consumable (runs out)
+      owned: o.owned || 0,
+      stock: o.stock || 0,
       reorderPoint: o.reorder || 0,
       photo: null, notes: ''
     };
@@ -173,7 +171,7 @@ function seedDB() {
       it('Cooking Oil', 'food', { stock: 8, reorder: 3, price: 160, unit: 'L' })
     ],
     events: [],
-    deliveries: []   // {id, date, supplier, checker, itemId, qty, cost}
+    deliveries: []
   };
 }
 
@@ -320,7 +318,7 @@ function render() {
 }
 
 /* ============================================================
-   TAB: DATABASE (master list of all items)
+   TAB: DATABASE
    ============================================================ */
 function renderDatabase() {
   var q = dbSearch.trim().toLowerCase();
@@ -399,7 +397,6 @@ function photoThumb(it) {
   return '<div class="thumb">' + catIcon(it) + '</div>';
 }
 
-/* ---- item add/edit form ---- */
 function openItemForm(id) {
   var it = id ? getItem(id) : null;
   photoTemp = it ? it.photo : null;
@@ -487,7 +484,7 @@ function deleteItem(id) {
 }
 
 /* ============================================================
-   TAB: EVENTS (per-event out/in tracking)
+   TAB: EVENTS
    ============================================================ */
 function renderEvents() {
   var open = db.events.filter(function (e) { return e.status === 'open'; });
@@ -627,20 +624,7 @@ function renderEventDetail(id) {
   }
   return html;
 }
-if (!closed) {
-    html += '<div class="btn-row" style="margin-top:16px">' +
-      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' +
-      '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">🔒 Close Event</button>' +
-    '</div>';
-    html += '<div class="hint" style="text-align:center;margin-top:6px">Close this once the event is done and all items have been accounted for.</div>';
-  } else {
-    html += '<div class="btn-row" style="margin-top:16px">' +
-      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">🗑️ Delete This Event</button>' +
-    '</div>';
-    html += '<div class="hint" style="text-align:center;margin-top:6px">Use this if the event was closed by mistake or needs to be removed entirely.</div>';
-  }
-  return html;
-}
+
 function tile(numStr, label, cls) {
   return '<div class="tile ' + (cls || '') + '"><div class="t-num">' + numStr + '</div><div class="t-label">' + label + '</div></div>';
 }
@@ -819,7 +803,7 @@ function deleteEvent(evId) {
 }
 
 /* ============================================================
-   TAB: TOOLBOX (packaging materials)
+   TAB: TOOLBOX
    ============================================================ */
 function renderToolbox() {
   var disposables = db.items.filter(function (it) { return it.category === 'toolbox' && it.disposable; });
@@ -864,7 +848,7 @@ function byName(a, b) { return a.name.localeCompare(b.name); }
 function isLow(it) { return it.reorderPoint > 0 && (it.stock || 0) <= it.reorderPoint; }
 
 /* ============================================================
-   TAB: FOOD (storage + weekly deliveries + expenses)
+   TAB: FOOD
    ============================================================ */
 function renderFood() {
   var foods = db.items.filter(function (it) { return it.category === 'food'; });
@@ -1012,7 +996,7 @@ function saveDelivery() {
 }
 
 /* ============================================================
-   TAB: LEADS (accountability)
+   TAB: LEADS
    ============================================================ */
 function renderLeads() {
   var leads = {};
@@ -1145,6 +1129,7 @@ document.getElementById('photoInput').addEventListener('change', function () {
   };
   reader.readAsDataURL(file);
 });
+
 function openMenu() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var html = '<h3>Menu</h3>' +
