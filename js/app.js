@@ -943,21 +943,15 @@ function renderLeads() {
   });
   return html;
 }
-
 function renderLeadDetail(name) {
   var evs = db.events.filter(function (ev) {
     return ((ev.lead || '').trim() || '(walang lead)') === name;
   });
   evs.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
-  var totalDamage = 0;
-  evs.forEach(function (ev) { totalDamage += eventDamageValue(ev); });
   var html = '<button class="back-btn" onclick="go(\'leads\')">← Bumalik sa Leads</button>';
   html += '<div class="card"><div class="row"><div class="thumb">👤</div><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
     '<div class="item-meta">' + evs.length + ' event record</div></div></div></div>';
-  if (totalDamage > 0) {
-    html += '<div class="tiles">' + tile(money(totalDamage), 'Kabuuang halaga ng sira/nawala', 'bad') + '</div>';
-  }
   evs.forEach(function (ev) { html += eventCard(ev); });
   return html;
 }
