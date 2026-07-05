@@ -51,7 +51,7 @@ function doLogin() {
   if (!email || !pass) { alert('Enter your email and password.'); return; }
   fbAuth.signInWithEmailAndPassword(email, pass).catch(function (err) {
     console.error('Login error', err);
-    alert('Wrong email or password. Please try again.');
+    alert('Could not sign in: ' + err.message);
   });
 }
 function doSignup() {
