@@ -328,10 +328,10 @@ function dbTabLabel(tab) {
   return 'Food';
 }
 
-function getMaterials() {
+function getMaterials(cat) {
   var set = {};
   db.items.forEach(function (it) {
-    if (it.category === 'event' && it.material) set[it.material] = true;
+    if (it.category === cat && it.material) set[it.material] = true;
   });
   return Object.keys(set).sort();
 }
@@ -346,7 +346,7 @@ function dbTabItems(tab) {
       if (dbFilter === 'toolbox-n' && it.disposable) return false;
       if (dbFilter === 'toolbox-d' && !it.disposable) return false;
     }
-    if (tab === 'event' && dbMaterialFilter !== 'all' && (it.material || '') !== dbMaterialFilter) return false;
+    if ((tab === 'event' || tab === 'food') && dbMaterialFilter !== 'all' && (it.material || '') !== dbMaterialFilter) return false;
     if (q && it.name.toLowerCase().indexOf(q) < 0) return false;
     return true;
   }).sort(byName);
@@ -368,8 +368,8 @@ function renderDatabase() {
     }).join('') + '</div>';
   }
 
-  if (dbTab === 'event') {
-    var materials = getMaterials();
+if (dbTab === 'event' || dbTab === 'food') {
+    var materials = getMaterials(dbTab);
     if (materials.length) {
       html += '<div class="chips">' +
         '<button class="chip' + (dbMaterialFilter === 'all' ? ' active' : '') + '" onclick="dbMaterialFilter=\'all\';render()">All</button>' +
@@ -432,7 +432,7 @@ function openItemForm(id, presetTab) {
       '<div class="photo-hint">📷 ' + (photoTemp ? 'Change' : 'Take a photo') + '</div>' +
     '</div>' +
     '<div class="field"><label>Item Name</label><input id="f_name" value="' + esc(it ? it.name : '') + '" placeholder="e.g. Chafing Dish"></div>' +
-    '<div class="field"><label>Material/Type (optional)</label><input id="f_material" value="' + esc(it ? (it.material || '') : '') + '" placeholder="e.g. Wood, Metal, Ceramic, Gold"></div>' +
+    '<div class="field"><label>Category/Type (optional)</label><input id="f_material" value="' + esc(it ? (it.material || '') : '') + '" placeholder="e.g. Wood, Metal, Meat, Fruits, Vegetables"></div>' +
     '<div class="field"><label>Category</label><select id="f_cat" onchange="itemFormToggle()">' +
       opt('event', '🎪 Event Item (returnable)', it ? it.category === 'event' : presetCat === 'event') +
       opt('toolbox-n', '🧰 Toolbox — Returnable (serving)', it ? (it.category === 'toolbox' && !it.disposable) : presetCat === 'toolbox-n') +
