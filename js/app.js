@@ -112,6 +112,7 @@ var db = loadDB();
 var route = { tab: 'events', eventId: null, lead: null };
 var dbSearch = '';
 var dbFilter = 'all';
+var dbTab = 'event';   // 'event' | 'toolbox' | 'food'
 var photoTemp = null;        // dataURL while editing item form
 var photoCallback = null;    // called when a photo is captured
 var pickerCallback = null;   // called when an item is picked
@@ -320,32 +321,45 @@ function render() {
 /* ============================================================
    TAB: DATABASE
    ============================================================ */
-function renderDatabase() {
+function dbTabLabel(tab) {
+  if (tab === 'event') return 'Event Items';
+  if (tab === 'toolbox') return 'Toolbox';
+  return 'Food';
+}
+
+function dbTabItems(tab) {
   var q = dbSearch.trim().toLowerCase();
-  var items = db.items.filter(function (it) {
-    if (dbFilter !== 'all') {
-      if (dbFilter === 'toolbox-d' && !(it.category === 'toolbox' && it.disposable)) return false;
-      if (dbFilter === 'toolbox-n' && !(it.category === 'toolbox' && !it.disposable)) return false;
-      if (dbFilter === 'event' && it.category !== 'event') return false;
-      if (dbFilter === 'food' && it.category !== 'food') return false;
+  return db.items.filter(function (it) {
+    if (tab === 'event' && it.category !== 'event') return false;
+    if (tab === 'food' && it.category !== 'food') return false;
+    if (tab === 'toolbox') {
+      if (it.category !== 'toolbox') return false;
+      if (dbFilter === 'toolbox-n' && it.disposable) return false;
+      if (dbFilter === 'toolbox-d' && !it.disposable) return false;
     }
     if (q && it.name.toLowerCase().indexOf(q) < 0) return false;
     return true;
-  });
-  items.sort(function (a, b) { return a.name.localeCompare(b.name); });
+  }).sort(byName);
+}
 
-  var chips = [
-    ['all', 'All'], ['event', '🎪 Event'], ['toolbox-n', '🧰 Returnable'],
-    ['toolbox-d', '🧰 Disposable'], ['food', '🍲 Food']
-  ];
-
-  var html = '<input class="search" placeholder="🔍 Search for an item…" value="' + esc(dbSearch) + '" oninput="dbSearch=this.value;refreshDbList()">';
-  html += '<div class="chips">' + chips.map(function (c) {
-    return '<button class="chip' + (dbFilter === c[0] ? ' active' : '') + '" onclick="dbFilter=\'' + c[0] + '\';render()">' + c[1] + '</button>';
+function renderDatabase() {
+  var tabs = ['event', 'toolbox', 'food'];
+  var html = '<div class="chips" style="margin-bottom:10px">' + tabs.map(function (t) {
+    return '<button class="chip' + (dbTab === t ? ' active' : '') +
+      '" style="flex:1" onclick="dbTab=\'' + t + '\';dbFilter=\'all\';render()">' + dbTabLabel(t) + '</button>';
   }).join('') + '</div>';
 
-  html += '<button class="btn-add" onclick="openItemForm()">＋ New Item</button>';
-  html += '<div id="dbList">' + dbListHTML(items) + '</div>';
+  html += '<input class="search" placeholder="🔍 Search for an item…" value="' + esc(dbSearch) + '" oninput="dbSearch=this.value;refreshDbList()">';
+
+  if (dbTab === 'toolbox') {
+    var subChips = [['all', 'All'], ['toolbox-n', '🧰 Returnable'], ['toolbox-d', '🧰 Disposable']];
+    html += '<div class="chips">' + subChips.map(function (c) {
+      return '<button class="chip' + (dbFilter === c[0] ? ' active' : '') + '" onclick="dbFilter=\'' + c[0] + '\';render()">' + c[1] + '</button>';
+    }).join('') + '</div>';
+  }
+
+  html += '<button class="btn-add" onclick="openItemForm(null,\'' + dbTab + '\')">＋ Add Item to ' + dbTabLabel(dbTab) + '</button>';
+  html += '<div id="dbList">' + dbListHTML(dbTabItems(dbTab)) + '</div>';
   return html;
 }
 
@@ -357,19 +371,7 @@ function dbListHTML(items) {
 function refreshDbList() {
   var el = document.getElementById('dbList');
   if (!el) return;
-  var q = dbSearch.trim().toLowerCase();
-  var items = db.items.filter(function (it) {
-    if (dbFilter !== 'all') {
-      if (dbFilter === 'toolbox-d' && !(it.category === 'toolbox' && it.disposable)) return false;
-      if (dbFilter === 'toolbox-n' && !(it.category === 'toolbox' && !it.disposable)) return false;
-      if (dbFilter === 'event' && it.category !== 'event') return false;
-      if (dbFilter === 'food' && it.category !== 'food') return false;
-    }
-    if (q && it.name.toLowerCase().indexOf(q) < 0) return false;
-    return true;
-  });
-  items.sort(byName);
-  el.innerHTML = dbListHTML(items);
+  el.innerHTML = dbListHTML(dbTabItems(dbTab));
 }
 
 function itemCard(it) {
@@ -397,10 +399,11 @@ function photoThumb(it) {
   return '<div class="thumb">' + catIcon(it) + '</div>';
 }
 
-function openItemForm(id) {
+function openItemForm(id, presetTab) {
   var it = id ? getItem(id) : null;
   photoTemp = it ? it.photo : null;
-  var consumable = it ? isConsumable(it) : false;
+  var consumable = it ? isConsumable(it) : (presetTab === 'food');
+  var presetCat = it ? null : (presetTab === 'toolbox' ? 'toolbox-n' : presetTab || 'event');
   var html = '<h3>' + (it ? 'Edit Item' : 'New Item') + '</h3>' +
     '<div class="photo-box" onclick="capturePhoto(function(d){photoTemp=d;refreshFormPhoto()})">' +
       '<div id="formPhoto">' + formPhotoHTML() + '</div>' +
@@ -408,10 +411,10 @@ function openItemForm(id) {
     '</div>' +
     '<div class="field"><label>Item Name</label><input id="f_name" value="' + esc(it ? it.name : '') + '" placeholder="e.g. Chafing Dish"></div>' +
     '<div class="field"><label>Category</label><select id="f_cat" onchange="itemFormToggle()">' +
-      opt('event', '🎪 Event Item (returnable)', it && it.category === 'event') +
-      opt('toolbox-n', '🧰 Toolbox — Returnable (serving)', it && it.category === 'toolbox' && !it.disposable) +
-      opt('toolbox-d', '🧰 Toolbox — Disposable (runs out)', it && it.category === 'toolbox' && it.disposable) +
-      opt('food', '🍲 Food / Storage', it && it.category === 'food') +
+      opt('event', '🎪 Event Item (returnable)', it ? it.category === 'event' : presetCat === 'event') +
+      opt('toolbox-n', '🧰 Toolbox — Returnable (serving)', it ? (it.category === 'toolbox' && !it.disposable) : presetCat === 'toolbox-n') +
+      opt('toolbox-d', '🧰 Toolbox — Disposable (runs out)', it ? (it.category === 'toolbox' && it.disposable) : false) +
+      opt('food', '🍲 Food / Storage', it ? it.category === 'food' : presetCat === 'food') +
     '</select></div>' +
     '<div class="field-row">' +
       '<div class="field"><label>Unit</label><input id="f_unit" value="' + esc(it ? it.unit : 'pcs') + '" placeholder="pcs / kg / L"></div>' +
