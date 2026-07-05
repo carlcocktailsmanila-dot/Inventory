@@ -11,6 +11,9 @@ var PESO = '₱';
 
 /* ---------- state ---------- */
 var db = loadDB();
+var fsDB = null;
+try { fsDB = firebase.firestore(); } catch (e) { console.error('Firestore init error', e); }
+var CLOUD_DOC = fsDB ? fsDB.collection('inventory').doc('main') : null;
 var route = { tab: 'events', eventId: null, lead: null };
 var dbSearch = '';
 var dbFilter = 'all';
@@ -33,7 +36,13 @@ function loadDB() {
 function saveDB() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(db));
-  } catch (e) {
+  } catch (e) { /* backup cache lang ito, hindi kritikal */ }
+  if (CLOUD_DOC) {
+    CLOUD_DOC.set(db).catch(function (e) {
+      console.error('Cloud save error', e);
+      toast('⚠️ Walang internet — hindi nai-sync sa ibang device.');
+    });
+  } else {
     alert('Hindi na-save! Baka puno na ang storage ng device. I-export ang backup at burahin ang mga lumang litrato.');
   }
 }
@@ -1107,4 +1116,25 @@ function toast(msg) {
 }
 
 /* ---------- boot ---------- */
+/* ---------- boot ---------- */
 render();
+
+if (CLOUD_DOC) {
+  CLOUD_DOC.onSnapshot(function (snap) {
+    if (snap.exists) {
+      var remote = snap.data();
+      if (remote && remote.items && remote.events && remote.deliveries) {
+        db = remote;
+        try { localStorage.setItem(LS_KEY, JSON.stringify(db)); } catch (e) {}
+        render();
+      }
+    } else {
+      // walang pa laman ang cloud — ilagay ang kasalukuyang lokal na data
+      CLOUD_DOC.set(db).catch(function (e) { console.error('Initial cloud push error', e); });
+    }
+  }, function (err) {
+    console.error('Cloud listen error', err);
+    toast('⚠️ Hindi makonekta sa cloud — naka-offline mode.');
+  });
+}
+
