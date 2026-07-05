@@ -44,6 +44,8 @@ function doLogout() {
 function renderLoginScreen(deniedEmail) {
   var nav = document.querySelector('.bottomnav');
   if (nav) nav.style.display = 'none';
+  var menuBtn = document.querySelector('.icon-btn');
+  if (menuBtn) menuBtn.style.display = 'none';
   var v = document.getElementById('view');
   v.innerHTML =
     '<div style="text-align:center;padding:60px 20px">' +
@@ -252,6 +254,8 @@ function render() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var nav = document.querySelector('.bottomnav');
   if (nav) nav.style.display = '';
+  var menuBtn = document.querySelector('.icon-btn');
+  if (menuBtn) menuBtn.style.display = '';
   var navTab = route.tab;
   if (navTab === 'eventDetail') navTab = 'events';
   if (navTab === 'leadDetail') navTab = 'leads';
@@ -1102,6 +1106,7 @@ document.getElementById('photoInput').addEventListener('change', function () {
 
 /* menu (⋮): backup, import, reset, logout */
 function openMenu() {
+  if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var itemCount = db.items.length, evCount = db.events.length;
   var html = '<h3>Menu</h3>' +
     '<div class="hint" style="margin-bottom:10px">' + itemCount + ' items · ' + evCount + ' events</div>' +
