@@ -171,7 +171,6 @@ function seedDB() {
       it('Food Container (Microwavable)', 'toolbox', { disposable: true, stock: 200, reorder: 50, price: 6, unit: 'pcs' }),
       it('Chicken (Whole)', 'food', { stock: 10, reorder: 4, price: 220, unit: 'kg' }),
       it('Rice', 'food', { stock: 50, reorder: 15, price: 52, unit: 'kg' }),
-      it('Cooking Oil', 'food', { stock: 8, reorder: 3, price: 160, unit: 'L' })
     ],
     events: [],
     deliveries: []
