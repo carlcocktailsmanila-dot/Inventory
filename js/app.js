@@ -1122,16 +1122,14 @@ document.getElementById('photoInput').addEventListener('change', function () {
   };
   reader.readAsDataURL(file);
 });
-
 function openMenu() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var html = '<h3>Menu</h3>' +
     (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b></div>' : '') +
-    '<button class="menu-item" onclick="openChangePassword()">🔑 Change Password</button>' +
+    '<button class="menu-item" onclick="openChangePassword()">Change Password</button>' +
     '<button class="menu-item" onclick="doLogout()">🚪 Sign out</button>';
   openModal(html);
 }
-
 function openChangePassword() {
   var html = '<h3>Change Password</h3>' +
     '<div class="field"><label>New Password</label><input id="cp_new" type="password" placeholder="Min 6 characters"></div>' +
