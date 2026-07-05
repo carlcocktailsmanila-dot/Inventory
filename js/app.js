@@ -608,22 +608,17 @@ function renderEventDetail(id) {
         '<div class="' + (p > 0 ? 'pend' : 'ok') + '"><div class="lg-num">' + p + '</div><div class="lg-label">PENDING</div></div>' +
       '</div></div>';
   });
-  if (!closed) html += '<button class="btn-add" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button>';
-
-  html += '<div class="section-title">🧰 Disposables Used</div>';
-  html += usageList(ev, 'toolbox', closed);
-  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button>';
-
-  html += '<div class="section-title">🍲 Food Used</div>';
-  html += usageList(ev, 'food', closed);
-  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button>';
-
-  if (!closed) {
+if (!closed) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' +
       '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">🔒 Close Event</button>' +
     '</div>';
     html += '<div class="hint" style="text-align:center;margin-top:6px">Close this once the event is done and all items have been accounted for.</div>';
+  } else {
+    html += '<div class="btn-row" style="margin-top:16px">' +
+      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">🗑️ Delete This Event</button>' +
+    '</div>';
+    html += '<div class="hint" style="text-align:center;margin-top:6px">Use this if the event was closed by mistake or needs to be removed entirely.</div>';
   }
   return html;
 }
