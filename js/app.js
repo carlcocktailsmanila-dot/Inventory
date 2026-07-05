@@ -63,14 +63,12 @@ function doSignup() {
   var email = document.getElementById('login_email').value.trim();
   var pass = document.getElementById('login_pass').value;
   if (!email || !pass) { alert('Enter your email and password.'); return; }
-  if (!isAllowed(email)) {
-    alert('This email is not on the approved list. Please contact ADMIN to get access.');
-    return;
-  }
   if (pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
   fbAuth.createUserWithEmailAndPassword(email, pass).catch(function (err) {
     console.error('Signup error', err);
     alert('Could not create account: ' + err.message);
+  });
+}
   });
 }
 
