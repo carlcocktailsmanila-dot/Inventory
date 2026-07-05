@@ -432,7 +432,7 @@ function openItemForm(id, presetTab) {
       '<div class="photo-hint">📷 ' + (photoTemp ? 'Change' : 'Take a photo') + '</div>' +
     '</div>' +
     '<div class="field"><label>Item Name</label><input id="f_name" value="' + esc(it ? it.name : '') + '" placeholder="e.g. Chafing Dish"></div>' +
-    '<div class="field"><label>Category/Type (optional)</label><input id="f_material" value="' + esc(it ? (it.material || '') : '') + '" placeholder="e.g. Wood, Metal, Meat, Fruits, Vegetables"></div>' +
+    '<div class="field"><label>Category/Type (optional)</label><input id="f_material" value="' + esc(it ? (it.material || '') : '') + '" placeholder="Type"></div>' +
     '<div class="field"><label>Category</label><select id="f_cat" onchange="itemFormToggle()">' +
       opt('event', '🎪 Event Item (returnable)', it ? it.category === 'event' : presetCat === 'event') +
       opt('toolbox-n', '🧰 Toolbox — Returnable (serving)', it ? (it.category === 'toolbox' && !it.disposable) : presetCat === 'toolbox-n') +
