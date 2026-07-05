@@ -45,7 +45,19 @@
 <input type="file" id="importInput" accept="application/json,.json" class="hidden-input">
 
 <div id="toast" class="toast hidden"></div>
-
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAQ-a7gAcDJHqio3-umcu5TpN5UK_E9w2o",
+    authDomain: "cocktails-manila-inventory.firebaseapp.com",
+    projectId: "cocktails-manila-inventory",
+    storageBucket: "cocktails-manila-inventory.firebasestorage.app",
+    messagingSenderId: "767327100367",
+    appId: "1:767327100367:web:e6932cf67d8350a93946ba"
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
 <script src="js/app.js"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
