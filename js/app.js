@@ -29,10 +29,19 @@ var authMode = 'signin';   // 'signin' or 'signup'
 function isAllowed(email) {
   return email && ALLOWED_EMAILS.indexOf(email.toLowerCase()) >= 0;
 }
-
 function switchAuthMode(mode) {
   authMode = mode;
   renderLoginScreen();
+}
+function doForgotPassword() {
+  var email = document.getElementById('login_email').value.trim();
+  if (!email) { alert('Please enter your email first, then tap "Forgot password?" again.'); return; }
+  fbAuth.sendPasswordResetEmail(email).then(function () {
+    alert('A password reset link has been sent to ' + email + '. Please check your inbox (and spam folder).');
+  }).catch(function (err) {
+    console.error('Password reset error', err);
+    alert('Could not send reset email: ' + err.message);
+  });
 }
 function togglePasswordView() {
   var input = document.getElementById('login_pass');
@@ -89,11 +98,12 @@ function renderLoginScreen() {
           '</div>' +
         '</div>' +
       '</div>' +
-      (isSignup
+    (isSignup
         ? '<button class="btn btn-primary" onclick="doSignup()">✅ Create Account</button>' +
           '<div class="hint" style="margin-top:12px">Already have an account? <a href="#" onclick="switchAuthMode(\'signin\');return false;">Sign in</a></div>'
         : '<button class="btn btn-primary" onclick="doLogin()">🔐 Sign In</button>' +
-          '<div class="hint" style="margin-top:12px">No account yet? <a href="#" onclick="switchAuthMode(\'signup\');return false;">Create one</a></div>') +
+          '<div class="hint" style="margin-top:12px">No account yet? <a href="#" onclick="switchAuthMode(\'signup\');return false;">Create one</a></div>' +
+          '<div class="hint" style="margin-top:8px"><a href="#" onclick="doForgotPassword();return false;">Forgot password?</a></div>') +
     '</div>';
 }
 
