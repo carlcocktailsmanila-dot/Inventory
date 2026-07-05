@@ -2,7 +2,7 @@
    Inventory App — Event Equipment · Toolbox · Food
    Three sectors, per-event tracking, checker accountability.
    Data stored in cloud (Firestore) + local cache (localStorage).
-   Google Sign-In login — only allowlisted accounts can access.
+   Email/Password login — only approved emails can sign up.
    ============================================================ */
 
 'use strict';
@@ -18,22 +18,45 @@ var CLOUD_DOC = fsDB ? fsDB.collection('inventory').doc('main') : null;
 var fbAuth = null;
 try { fbAuth = firebase.auth(); } catch (e) { console.error('Auth init error', e); }
 
-// REPLACE this with the real Gmail of each staff member (lowercase, no extra spaces)
+// REPLACE this with the real email of each staff member who is allowed to sign up
 var ALLOWED_EMAILS = [
   'carl.cocktailsmanila@gmail.com'
 ];
 
 var currentUser = null;
+var authMode = 'signin';   // 'signin' or 'signup'
 
 function isAllowed(email) {
   return email && ALLOWED_EMAILS.indexOf(email.toLowerCase()) >= 0;
 }
 
-function doGoogleLogin() {
-  var provider = new firebase.auth.GoogleAuthProvider();
-  fbAuth.signInWithPopup(provider).catch(function (err) {
+function switchAuthMode(mode) {
+  authMode = mode;
+  renderLoginScreen();
+}
+
+function doLogin() {
+  var email = document.getElementById('login_email').value.trim();
+  var pass = document.getElementById('login_pass').value;
+  if (!email || !pass) { alert('Enter your email and password.'); return; }
+  fbAuth.signInWithEmailAndPassword(email, pass).catch(function (err) {
     console.error('Login error', err);
     alert('Could not sign in: ' + err.message);
+  });
+}
+
+function doSignup() {
+  var email = document.getElementById('login_email').value.trim();
+  var pass = document.getElementById('login_pass').value;
+  if (!email || !pass) { alert('Enter your email and password.'); return; }
+  if (!isAllowed(email)) {
+    alert('This email is not on the approved list. Please contact Meanne to get access.');
+    return;
+  }
+  if (pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
+  fbAuth.createUserWithEmailAndPassword(email, pass).catch(function (err) {
+    console.error('Signup error', err);
+    alert('Could not create account: ' + err.message);
   });
 }
 
@@ -41,20 +64,27 @@ function doLogout() {
   fbAuth.signOut();
 }
 
-function renderLoginScreen(deniedEmail) {
+function renderLoginScreen() {
   var nav = document.querySelector('.bottomnav');
   if (nav) nav.style.display = 'none';
   var menuBtn = document.querySelector('.icon-btn');
   if (menuBtn) menuBtn.style.display = 'none';
   var v = document.getElementById('view');
+  var isSignup = authMode === 'signup';
   v.innerHTML =
     '<div style="text-align:center;padding:60px 20px">' +
       '<div style="font-size:48px;margin-bottom:12px">📦</div>' +
       '<h2 style="margin-bottom:6px">Cocktails Manila Inventory</h2>' +
-      (deniedEmail
-        ? '<div class="notice red" style="max-width:320px;margin:12px auto">🚫 The account "' + esc(deniedEmail) + '" is not authorized. Please contact Meanne if you need access.</div>'
-        : '<p class="hint">Sign in with the Google account provided to you.</p>') +
-      '<button class="btn btn-primary" style="margin-top:16px" onclick="doGoogleLogin()">🔐 Sign in with Google</button>' +
+      '<p class="hint">' + (isSignup ? 'Create an account (approved emails only).' : 'Sign in with your account.') + '</p>' +
+      '<div style="max-width:280px;margin:16px auto;text-align:left">' +
+        '<div class="field"><label>Email</label><input id="login_email" type="email" placeholder="you@example.com"></div>' +
+        '<div class="field"><label>Password</label><input id="login_pass" type="password" placeholder="Password (min 6 characters)"></div>' +
+      '</div>' +
+      (isSignup
+        ? '<button class="btn btn-primary" onclick="doSignup()">✅ Create Account</button>' +
+          '<div class="hint" style="margin-top:12px">Already have an account? <a href="#" onclick="switchAuthMode(\'signin\');return false;">Sign in</a></div>'
+        : '<button class="btn btn-primary" onclick="doLogin()">🔐 Sign In</button>' +
+          '<div class="hint" style="margin-top:12px">No account yet? <a href="#" onclick="switchAuthMode(\'signup\');return false;">Create one</a></div>') +
     '</div>';
 }
 
@@ -173,7 +203,6 @@ function isConsumable(it) {
 }
 
 /* ---------- derived numbers ---------- */
-// Total damaged/lost across all events (deducted from owned)
 function totalDamagedLost(itemId) {
   var t = 0;
   db.events.forEach(function (ev) {
@@ -183,7 +212,6 @@ function totalDamagedLost(itemId) {
   });
   return t;
 }
-// Still out (open events): out - returned - damaged - lost
 function pendingOut(itemId) {
   var t = 0;
   db.events.forEach(function (ev) {
@@ -309,7 +337,6 @@ function dbListHTML(items) {
   return items.map(function (it) { return itemCard(it); }).join('');
 }
 
-// only updates the list (not the whole page) so the keyboard doesn't close while searching
 function refreshDbList() {
   var el = document.getElementById('dbList');
   if (!el) return;
@@ -537,13 +564,11 @@ function renderEventDetail(id) {
   if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">✅ All items returned. This event can now be closed.</div>';
   if (closed && issues > 0) html += '<div class="notice amber">⚠️ ' + issues + ' item(s) damaged or lost in this event (' + money(eventDamageValue(ev)) + ').</div>';
 
-  // summary tiles
   html += '<div class="tiles">' +
     tile(money(eventValueOut(ev)), 'Value of items released') +
     tile(money(eventUsageCost(ev, 'food')), 'Food expenses') +
     '</div>';
 
-  /* --- Items (returnable): event items + toolbox non-disposable --- */
   html += '<div class="section-title">🎪 Items Released (returnable)</div>';
   var lines = ev.lines || [];
   if (!lines.length) html += '<div class="empty">No items released yet.</div>';
@@ -566,17 +591,14 @@ function renderEventDetail(id) {
   });
   if (!closed) html += '<button class="btn-add" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button>';
 
-  /* --- Consumables: toolbox disposables --- */
   html += '<div class="section-title">🧰 Disposables Used</div>';
   html += usageList(ev, 'toolbox', closed);
   if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button>';
 
-  /* --- Food used --- */
   html += '<div class="section-title">🍲 Food Used</div>';
   html += usageList(ev, 'food', closed);
   if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button>';
 
-  /* --- close --- */
   if (!closed) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' +
@@ -606,7 +628,6 @@ function usageList(ev, category, closed) {
   }).join('');
 }
 
-/* ---- release ---- */
 function openReleasePicker(evId) {
   openPicker(
     function (it) { return !isConsumable(it); },
@@ -634,7 +655,6 @@ function doRelease(evId, itemId) {
   var avail = availableNow(it);
   if (qty > avail && !confirm('Warning: only ' + avail + ' ' + it.name + ' available. Proceed with ' + qty + ' anyway?')) return;
   var notes = document.getElementById('r_notes').value.trim();
-  // if a line already exists for this item, just add to it
   var line = null;
   (ev.lines || []).forEach(function (l) { if (l.itemId === itemId) line = l; });
   if (line) {
@@ -647,7 +667,6 @@ function doRelease(evId, itemId) {
   toast('📤 Released: ' + qty + ' ' + it.name);
 }
 
-/* ---- return ---- */
 function openReturnForm(evId, lineIdx) {
   var ev = getEvent(evId); var l = ev.lines[lineIdx];
   var it = getItem(l.itemId);
@@ -678,7 +697,6 @@ function doReturn(evId, lineIdx) {
   toast('📥 Returned: ' + ok + (dmg ? ' · Damaged: ' + dmg : '') + ' — ' + (it ? it.name : ''));
 }
 
-/* ---- usage (consumables) ---- */
 function openUsagePicker(evId, category) {
   openPicker(
     function (it) { return isConsumable(it) && it.category === category; },
@@ -730,7 +748,7 @@ function saveUsageEdit(evId, usageIdx, remove) {
   var it = getItem(u.itemId);
   var newQty = remove ? 0 : num(document.getElementById('ue_qty').value);
   if (newQty < 0) return;
-  var diff = u.qty - newQty;        // positive = return to stock
+  var diff = u.qty - newQty;
   if (it) it.stock = Math.max(0, (it.stock || 0) + diff);
   if (newQty === 0) ev.usage.splice(usageIdx, 1);
   else u.qty = newQty;
@@ -738,7 +756,6 @@ function saveUsageEdit(evId, usageIdx, remove) {
   toast('✅ Updated');
 }
 
-/* ---- close / delete event ---- */
 function closeEvent(evId) {
   var ev = getEvent(evId);
   var pend = eventPending(ev);
@@ -760,7 +777,6 @@ function closeEvent(evId) {
 function deleteEvent(evId) {
   var ev = getEvent(evId);
   if (!confirm('Delete event "' + ev.name + '"? Recorded consumables used will be returned to stock.')) return;
-  // return consumables used back to stock
   (ev.usage || []).forEach(function (u) {
     var it = getItem(u.itemId);
     if (it) it.stock = (it.stock || 0) + u.qty;
@@ -823,7 +839,6 @@ function renderFood() {
   foods.sort(byName);
   var lowCount = foods.filter(isLow).length;
 
-  // expenses this month
   var month = today().slice(0, 7);
   var boughtMonth = 0;
   db.deliveries.forEach(function (d) {
@@ -857,7 +872,6 @@ function renderFood() {
       '</div></div>';
   });
 
-  /* deliveries history — grouped by date+supplier */
   var groups = {};
   var order = [];
   db.deliveries.forEach(function (d) {
@@ -891,9 +905,7 @@ function renderFood() {
   return html;
 }
 
-/* ---- delivery form (stock in) — also used for toolbox disposables ---- */
-var deliveryLines = [];   // {itemId, qty, cost}
-
+var deliveryLines = [];
 var deliveryHeader = { date: '', supplier: '', checker: '' };
 
 function openDeliveryForm(presetItemId) {
@@ -926,7 +938,7 @@ function addDeliveryLine() {
     function (it) { return isConsumable(it); },
     function (item) {
       deliveryLines.push({ itemId: item.id, qty: 0, cost: item.price || 0 });
-      renderDeliveryModal();   // back to the delivery form, keeping what was already typed
+      renderDeliveryModal();
     },
     'Select delivered item'
   );
@@ -960,7 +972,7 @@ function saveDelivery() {
     var it = getItem(dl.itemId);
     if (!it) return;
     it.stock = (it.stock || 0) + dl.qty;
-    if (dl.cost > 0) it.price = dl.cost;   // update latest price
+    if (dl.cost > 0) it.price = dl.cost;
     db.deliveries.push({ id: uid(), date: date, supplier: supplier, checker: checker, itemId: dl.itemId, qty: dl.qty, cost: dl.cost || 0 });
   });
   saveDB(); closeModal(); render();
@@ -1026,7 +1038,6 @@ function openPicker(filterFn, onPick, title) {
     '<input class="search" placeholder="🔍 Search…" oninput="filterPicker(this.value)">' +
     '<div id="pickerList">' + pickerListHTML(items) + '</div>';
   openModal(html);
-  // stash the filter function so it can be used for search
   window._pickerFilter = filterFn;
 }
 
@@ -1075,7 +1086,6 @@ function overlayClick(e) {
   if (e.target === document.getElementById('modalOverlay')) closeModal();
 }
 
-/* photo capture + compress */
 function capturePhoto(cb) {
   photoCallback = cb;
   document.getElementById('photoInput').click();
@@ -1104,7 +1114,6 @@ document.getElementById('photoInput').addEventListener('change', function () {
   reader.readAsDataURL(file);
 });
 
-/* menu (⋮): backup, import, reset, logout */
 function openMenu() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var itemCount = db.items.length, evCount = db.events.length;
@@ -1159,7 +1168,6 @@ function resetData() {
   toast('🗑️ Data reset');
 }
 
-/* toast */
 var toastTimer = null;
 function toast(msg) {
   var t = document.getElementById('toast');
@@ -1181,7 +1189,6 @@ function startCloudSync() {
         render();
       }
     } else {
-      // cloud is still empty — push the current local data
       CLOUD_DOC.set(db).catch(function (e) { console.error('Initial cloud push error', e); });
     }
   }, function (err) {
@@ -1192,14 +1199,10 @@ function startCloudSync() {
 
 if (fbAuth) {
   fbAuth.onAuthStateChanged(function (user) {
-    if (user && isAllowed(user.email)) {
+    if (user) {
       currentUser = user;
       render();
       startCloudSync();
-    } else if (user) {
-      currentUser = null;
-      renderLoginScreen(user.email);
-      fbAuth.signOut();
     } else {
       currentUser = null;
       renderLoginScreen();
