@@ -69,9 +69,6 @@ function doSignup() {
     alert('Could not create account: ' + err.message);
   });
 }
-  });
-}
-
 function doLogout() {
   fbAuth.signOut();
 }
