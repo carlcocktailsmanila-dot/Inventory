@@ -568,9 +568,7 @@ function renderEventDetail(id) {
   var closed = ev.status === 'closed';
   var pend = eventPending(ev);
   var issues = eventIssues(ev);
-
   var html = '<button class="back-btn" onclick="go(\'events\')">← Back to Events</button>';
-
   html += '<div class="card"><div class="row"><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(ev.name) + '</div>' +
     '<div class="item-meta">📅 ' + fmtDate(ev.date) + (ev.venue ? ' · 📍 ' + esc(ev.venue) : '') + '</div>' +
@@ -578,16 +576,13 @@ function renderEventDetail(id) {
     '</div>' +
     (!closed ? '<button class="btn btn-sm" onclick="openEventForm(\'' + ev.id + '\')">✏️</button>' : '<span class="badge b-gray">CLOSED</span>') +
     '</div></div>';
-
   if (!closed && pend > 0) html += '<div class="notice red">⚠️ ' + pend + ' item(s) not yet returned.</div>';
   if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">✅ All items returned. This event can now be closed.</div>';
   if (closed && issues > 0) html += '<div class="notice amber">⚠️ ' + issues + ' item(s) damaged or lost in this event (' + money(eventDamageValue(ev)) + ').</div>';
-
   html += '<div class="tiles">' +
     tile(money(eventValueOut(ev)), 'Value of items released') +
     tile(money(eventUsageCost(ev, 'food')), 'Food expenses') +
     '</div>';
-
   html += '<div class="section-title">🎪 Items Released (returnable)</div>';
   var lines = ev.lines || [];
   if (!lines.length) html += '<div class="empty">No items released yet.</div>';
@@ -608,6 +603,30 @@ function renderEventDetail(id) {
         '<div class="' + (p > 0 ? 'pend' : 'ok') + '"><div class="lg-num">' + p + '</div><div class="lg-label">PENDING</div></div>' +
       '</div></div>';
   });
+  if (!closed) html += '<button class="btn-add" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button>';
+
+  html += '<div class="section-title">🧰 Disposables Used</div>';
+  html += usageList(ev, 'toolbox', closed);
+  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button>';
+
+  html += '<div class="section-title">🍲 Food Used</div>';
+  html += usageList(ev, 'food', closed);
+  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button>';
+
+  if (!closed) {
+    html += '<div class="btn-row" style="margin-top:16px">' +
+      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' +
+      '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">🔒 Close Event</button>' +
+    '</div>';
+    html += '<div class="hint" style="text-align:center;margin-top:6px">Close this once the event is done and all items have been accounted for.</div>';
+  } else {
+    html += '<div class="btn-row" style="margin-top:16px">' +
+      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">🗑️ Delete This Event</button>' +
+    '</div>';
+    html += '<div class="hint" style="text-align:center;margin-top:6px">Use this if the event was closed by mistake or needs to be removed entirely.</div>';
+  }
+  return html;
+}
 if (!closed) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' +
