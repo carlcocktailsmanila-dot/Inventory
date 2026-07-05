@@ -809,41 +809,40 @@ function deleteEvent(evId) {
    TAB: TOOLBOX
    ============================================================ */
 function renderToolbox() {
-  var disposables = db.items.filter(function (it) { return it.category === 'toolbox' && it.disposable; });
-  var returnables = db.items.filter(function (it) { return it.category === 'toolbox' && !it.disposable; });
-  disposables.sort(byName); returnables.sort(byName);
-  var lowCount = disposables.filter(isLow).length;
+  var items = db.items.filter(function (it) { return it.category === 'toolbox'; });
+  items.sort(byName);
+  var lowCount = items.filter(function (it) { return it.disposable && isLow(it); }).length;
 
   var html = '<div class="tiles">' +
-    tile(String(disposables.length + returnables.length), 'Toolbox items') +
+    tile(String(items.length), 'Toolbox items') +
     tile(String(lowCount), 'Need reordering', lowCount ? 'bad' : '') +
     '</div>';
 
-  html += '<div class="section-title">🧰 Disposables (runs out)</div>';
-  if (!disposables.length) html += '<div class="empty">No disposable items yet. Add one in the Database tab.</div>';
-  disposables.forEach(function (it) {
-    var low = isLow(it);
-    html += '<div class="card"><div class="row">' + photoThumb(it) +
-      '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
-      '<div class="item-meta">Reorder point: ' + (it.reorderPoint || 0) + ' ' + esc(it.unit) + '</div>' +
-      (low ? '<span class="badge b-red">⚠️ Reorder now!</span>' : '<span class="badge b-green">Stock OK</span>') +
-      '</div>' +
-      '<div><div class="stat-num"' + (low ? ' style="color:var(--red)"' : '') + '>' + (it.stock || 0) + '</div><div class="stat-label">' + esc(it.unit) + '</div>' +
-      '<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="openDeliveryForm(\'' + it.id + '\')">＋ Delivery</button></div>' +
-      '</div></div>';
+  html += '<div class="section-title">🧰 Toolbox</div>';
+  if (!items.length) html += '<div class="empty">No toolbox items yet. Add one in the Database tab.</div>';
+
+  items.forEach(function (it) {
+    if (it.disposable) {
+      var low = isLow(it);
+      html += '<div class="card"><div class="row">' + photoThumb(it) +
+        '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
+        '<div class="item-meta">Disposable · Reorder point: ' + (it.reorderPoint || 0) + ' ' + esc(it.unit) + '</div>' +
+        (low ? '<span class="badge b-red">⚠️ Reorder now!</span>' : '<span class="badge b-green">Stock OK</span>') +
+        '</div>' +
+        '<div><div class="stat-num"' + (low ? ' style="color:var(--red)"' : '') + '>' + (it.stock || 0) + '</div><div class="stat-label">' + esc(it.unit) + '</div>' +
+        '<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="openDeliveryForm(\'' + it.id + '\')">＋ Delivery</button></div>' +
+        '</div></div>';
+    } else {
+      var out = pendingOut(it.id);
+      html += '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
+        '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
+        '<div class="item-meta">Returnable · ' + (out > 0 ? '📤 ' + out + ' currently out (at an event)' : '✅ Complete in storage') + '</div></div>' +
+        '<div><div class="stat-num">' + availableNow(it) + '/' + ownedEffective(it) + '</div><div class="stat-label">available</div></div>' +
+        '</div></div>';
+    }
   });
 
-  html += '<div class="section-title">🧰 Returnable (for serving)</div>';
-  if (!returnables.length) html += '<div class="empty">No returnable toolbox items yet.</div>';
-  returnables.forEach(function (it) {
-    var out = pendingOut(it.id);
-    html += '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
-      '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
-      '<div class="item-meta">' + (out > 0 ? '📤 ' + out + ' currently out (at an event)' : '✅ Complete in storage') + '</div></div>' +
-      '<div><div class="stat-num">' + availableNow(it) + '/' + ownedEffective(it) + '</div><div class="stat-label">available</div></div>' +
-      '</div></div>';
-  });
-  html += '<div class="hint" style="margin:4px 2px 14px">Releasing/returning returnable items is done inside each <b>Event</b>.</div>';
+  html += '<div class="hint" style="margin:4px 2px 14px">Releasing/returning returnable items is done inside each <b>Event</b>. Disposables are restocked via "＋ Delivery".</div>';
   return html;
 }
 
