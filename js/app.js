@@ -113,9 +113,10 @@ var route = { tab: 'events', eventId: null, lead: null };
 var dbSearch = '';
 var dbFilter = 'all';
 var dbTab = 'event';   // 'event' | 'toolbox' | 'food'
-var photoTemp = null;        // dataURL while editing item form
-var photoCallback = null;    // called when a photo is captured
-var pickerCallback = null;   // called when an item is picked
+var dbMaterialFilter = 'all';
+var photoTemp = null;
+var photoCallback = null;
+var pickerCallback = null;
 
 /* ---------- storage ---------- */
 function loadDB() {
@@ -125,14 +126,14 @@ function loadDB() {
       var d = JSON.parse(raw);
       if (d && d.items && d.events && d.deliveries) return d;
     }
-  } catch (e) { /* corrupted -> just seed */ }
+  } catch (e) { }
   return seedDB();
 }
 
 function saveDB() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(db));
-  } catch (e) { /* just a backup cache, not critical */ }
+  } catch (e) { }
   if (CLOUD_DOC) {
     CLOUD_DOC.set(db).catch(function (e) {
       console.error('Cloud save error', e);
@@ -154,14 +155,15 @@ function seedDB() {
       owned: o.owned || 0,
       stock: o.stock || 0,
       reorderPoint: o.reorder || 0,
+      material: o.material || '',
       photo: null, notes: ''
     };
   }
   return {
     version: 1,
     items: [
-      it('Chafing Dish', 'event', { owned: 12, price: 1500 }),
-      it('Round Table', 'event', { owned: 20, price: 900 }),
+      it('Chafing Dish', 'event', { owned: 12, price: 1500, material: 'Metal' }),
+      it('Round Table', 'event', { owned: 20, price: 900, material: 'Wood' }),
       it('Monoblock Chair', 'event', { owned: 100, price: 250 }),
       it('Serving Tray (Stainless)', 'toolbox', { owned: 15, price: 350 }),
       it('Ice Bucket', 'toolbox', { owned: 6, price: 400 }),
@@ -327,6 +329,14 @@ function dbTabLabel(tab) {
   return 'Food';
 }
 
+function getMaterials() {
+  var set = {};
+  db.items.forEach(function (it) {
+    if (it.category === 'event' && it.material) set[it.material] = true;
+  });
+  return Object.keys(set).sort();
+}
+
 function dbTabItems(tab) {
   var q = dbSearch.trim().toLowerCase();
   return db.items.filter(function (it) {
@@ -337,6 +347,7 @@ function dbTabItems(tab) {
       if (dbFilter === 'toolbox-n' && it.disposable) return false;
       if (dbFilter === 'toolbox-d' && !it.disposable) return false;
     }
+    if (tab === 'event' && dbMaterialFilter !== 'all' && (it.material || '') !== dbMaterialFilter) return false;
     if (q && it.name.toLowerCase().indexOf(q) < 0) return false;
     return true;
   }).sort(byName);
@@ -346,7 +357,7 @@ function renderDatabase() {
   var tabs = ['event', 'toolbox', 'food'];
   var html = '<div class="chips" style="margin-bottom:10px">' + tabs.map(function (t) {
     return '<button class="chip' + (dbTab === t ? ' active' : '') +
-      '" style="flex:1" onclick="dbTab=\'' + t + '\';dbFilter=\'all\';render()">' + dbTabLabel(t) + '</button>';
+      '" style="flex:1" onclick="dbTab=\'' + t + '\';dbFilter=\'all\';dbMaterialFilter=\'all\';render()">' + dbTabLabel(t) + '</button>';
   }).join('') + '</div>';
 
   html += '<input class="search" placeholder="🔍 Search for an item…" value="' + esc(dbSearch) + '" oninput="dbSearch=this.value;refreshDbList()">';
@@ -356,6 +367,18 @@ function renderDatabase() {
     html += '<div class="chips">' + subChips.map(function (c) {
       return '<button class="chip' + (dbFilter === c[0] ? ' active' : '') + '" onclick="dbFilter=\'' + c[0] + '\';render()">' + c[1] + '</button>';
     }).join('') + '</div>';
+  }
+
+  if (dbTab === 'event') {
+    var materials = getMaterials();
+    if (materials.length) {
+      html += '<div class="chips">' +
+        '<button class="chip' + (dbMaterialFilter === 'all' ? ' active' : '') + '" onclick="dbMaterialFilter=\'all\';render()">All</button>' +
+        materials.map(function (m) {
+          return '<button class="chip' + (dbMaterialFilter === m ? ' active' : '') + '" onclick="dbMaterialFilter=\'' + esc(m) + '\';render()">' + esc(m) + '</button>';
+        }).join('') +
+        '</div>';
+    }
   }
 
   html += '<button class="btn-add" onclick="openItemForm(null,\'' + dbTab + '\')">＋ Add Item to ' + dbTabLabel(dbTab) + '</button>';
@@ -378,7 +401,7 @@ function itemCard(it) {
   var avail = availableNow(it);
   var low = isConsumable(it) && it.reorderPoint > 0 && avail <= it.reorderPoint;
   var out = !isConsumable(it) ? pendingOut(it.id) : 0;
-  var meta = catLabel(it) + ' · ' + money(it.price) + '/' + esc(it.unit);
+  var meta = (it.material ? esc(it.material) + ' · ' : '') + catLabel(it) + ' · ' + money(it.price) + '/' + esc(it.unit);
   var right;
   if (isConsumable(it)) {
     right = '<div class="stat-num" style="' + (low ? 'color:var(--red)' : '') + '">' + avail + ' ' + esc(it.unit) + '</div>' +
@@ -410,6 +433,7 @@ function openItemForm(id, presetTab) {
       '<div class="photo-hint">📷 ' + (photoTemp ? 'Change' : 'Take a photo') + '</div>' +
     '</div>' +
     '<div class="field"><label>Item Name</label><input id="f_name" value="' + esc(it ? it.name : '') + '" placeholder="e.g. Chafing Dish"></div>' +
+    '<div class="field"><label>Material/Type (optional)</label><input id="f_material" value="' + esc(it ? (it.material || '') : '') + '" placeholder="e.g. Wood, Metal, Ceramic, Gold"></div>' +
     '<div class="field"><label>Category</label><select id="f_cat" onchange="itemFormToggle()">' +
       opt('event', '🎪 Event Item (returnable)', it ? it.category === 'event' : presetCat === 'event') +
       opt('toolbox-n', '🧰 Toolbox — Returnable (serving)', it ? (it.category === 'toolbox' && !it.disposable) : presetCat === 'toolbox-n') +
@@ -458,6 +482,7 @@ function saveItemForm(id) {
   var it = id ? getItem(id) : null;
   if (!it) { it = { id: uid(), photo: null, notes: '' }; db.items.push(it); }
   it.name = name;
+  it.material = document.getElementById('f_material').value.trim();
   it.category = (cat === 'food') ? 'food' : (cat === 'event') ? 'event' : 'toolbox';
   it.disposable = (cat === 'toolbox-d');
   it.unit = document.getElementById('f_unit').value.trim() || 'pcs';
@@ -489,13 +514,23 @@ function deleteItem(id) {
 /* ============================================================
    TAB: EVENTS
    ============================================================ */
+var eventSearch = '';
+
 function renderEvents() {
-  var open = db.events.filter(function (e) { return e.status === 'open'; });
-  var closed = db.events.filter(function (e) { return e.status === 'closed'; });
+  var q = eventSearch.trim().toLowerCase();
+  var matches = function (ev) {
+    if (!q) return true;
+    return (ev.name || '').toLowerCase().indexOf(q) >= 0 ||
+           (ev.lead || '').toLowerCase().indexOf(q) >= 0 ||
+           (ev.venue || '').toLowerCase().indexOf(q) >= 0;
+  };
+  var open = db.events.filter(function (e) { return e.status === 'open' && matches(e); });
+  var closed = db.events.filter(function (e) { return e.status === 'closed' && matches(e); });
   open.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
   closed.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
-  var html = '<button class="btn-add" onclick="openEventForm()">＋ New Event</button>';
+  var html = '<input class="search" placeholder="🔍 Search by event, lead, or venue…" value="' + esc(eventSearch) + '" oninput="eventSearch=this.value;render()">';
+  html += '<button class="btn-add" onclick="openEventForm()">＋ New Event</button>';
 
   html += '<div class="section-title">Open Events (' + open.length + ')</div>';
   html += open.length ? open.map(eventCard).join('') : '<div class="empty">No open events.</div>';
@@ -504,6 +539,8 @@ function renderEvents() {
     html += '<div class="section-title">Completed (' + closed.length + ')</div>';
     html += closed.slice(0, 20).map(eventCard).join('');
     if (closed.length > 20) html += '<div class="hint" style="text-align:center">…and ' + (closed.length - 20) + ' more</div>';
+  } else if (q) {
+    html += '<div class="empty">No matching events.</div>';
   }
   return html;
 }
