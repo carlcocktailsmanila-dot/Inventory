@@ -1126,7 +1126,7 @@ document.getElementById('photoInput').addEventListener('change', function () {
 function openMenu() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var html = '<h3>Menu</h3>' +
-    (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b></div>' : '') +' + esc(currentUser.email) + '</b></div>' : '') +
+    (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b></div>' : '') +
     '<button class="menu-item" onclick="openChangePassword()">🔑 Change Password</button>' +
     '<button class="menu-item" onclick="doLogout()">🚪 Sign out</button>';
   openModal(html);
