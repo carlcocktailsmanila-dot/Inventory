@@ -41,8 +41,6 @@ function togglePasswordView() {
     btn.textContent = '👁️ Show';
   }
 }
-}
-
 function doLogin() {
   var email = document.getElementById('login_email').value.trim();
   var pass = document.getElementById('login_pass').value;
