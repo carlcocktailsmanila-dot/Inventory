@@ -30,6 +30,14 @@ function isAllowed(email) {
   return email && ALLOWED_EMAILS.indexOf(email.toLowerCase()) >= 0;
 }
 
+function switchAuthMode(mode) {
+  authMode = mode;
+  renderLoginScreen();
+}
+
+function togglePasswordView() {
+}
+
 function togglePasswordView() {
   var input = document.getElementById('login_pass');
   var btn = event.target;
