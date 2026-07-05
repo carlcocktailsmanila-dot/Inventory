@@ -58,7 +58,6 @@ function doLogin() {
     alert('Wrong email or password. Please try again.');
   });
 }
-
 function doSignup() {
   var email = document.getElementById('login_email').value.trim();
   var pass = document.getElementById('login_pass').value;
