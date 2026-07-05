@@ -30,9 +30,17 @@ function isAllowed(email) {
   return email && ALLOWED_EMAILS.indexOf(email.toLowerCase()) >= 0;
 }
 
-function switchAuthMode(mode) {
-  authMode = mode;
-  renderLoginScreen();
+function togglePasswordView() {
+  var input = document.getElementById('login_pass');
+  var btn = event.target;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈 Hide';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️ Show';
+  }
+}
 }
 
 function doLogin() {
@@ -50,7 +58,7 @@ function doSignup() {
   var pass = document.getElementById('login_pass').value;
   if (!email || !pass) { alert('Enter your email and password.'); return; }
   if (!isAllowed(email)) {
-    alert('This email is not on the approved list. Please contact Meanne to get access.');
+    alert('This email is not on the approved list. Please contact ADMIN to get access.');
     return;
   }
   if (pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
@@ -78,7 +86,12 @@ function renderLoginScreen() {
       '<p class="hint">' + (isSignup ? 'Create an account (approved emails only).' : 'Sign in with your account.') + '</p>' +
       '<div style="max-width:280px;margin:16px auto;text-align:left">' +
         '<div class="field"><label>Email</label><input id="login_email" type="email" placeholder="you@example.com"></div>' +
-        '<div class="field"><label>Password</label><input id="login_pass" type="password" placeholder="Password (min 6 characters)"></div>' +
+        '<div class="field"><label>Password</label>' +
+          '<div style="position:relative">' +
+            '<input id="login_pass" type="password" placeholder="Password (min 6 characters)" style="padding-right:60px">' +
+            '<button type="button" onclick="togglePasswordView()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#1a7f5a;font-size:13px;cursor:pointer;padding:4px">👁️ Show</button>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
       (isSignup
         ? '<button class="btn btn-primary" onclick="doSignup()">✅ Create Account</button>' +
