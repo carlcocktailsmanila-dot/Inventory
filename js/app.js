@@ -1,8 +1,8 @@
 /* ============================================================
    Inventory App — Event Equipment · Toolbox · Food
-   Tatlong sector, per-event tracking, checker accountability.
-   Data ay naka-save sa cloud (Firestore) + local cache (localStorage).
-   May Google Sign-In login — allowlist lang ang makakapasok.
+   Three sectors, per-event tracking, checker accountability.
+   Data stored in cloud (Firestore) + local cache (localStorage).
+   Google Sign-In login — only allowlisted accounts can access.
    ============================================================ */
 
 'use strict';
@@ -18,7 +18,7 @@ var CLOUD_DOC = fsDB ? fsDB.collection('inventory').doc('main') : null;
 var fbAuth = null;
 try { fbAuth = firebase.auth(); } catch (e) { console.error('Auth init error', e); }
 
-// I-PALITAN ito ng totoong Gmail ng bawat staff (lowercase, walang extra space)
+// REPLACE this with the real Gmail of each staff member (lowercase, no extra spaces)
 var ALLOWED_EMAILS = [
   'carl.cocktailsmanila@gmail.com'
 ];
@@ -33,7 +33,7 @@ function doGoogleLogin() {
   var provider = new firebase.auth.GoogleAuthProvider();
   fbAuth.signInWithPopup(provider).catch(function (err) {
     console.error('Login error', err);
-    alert('Hindi na-login: ' + err.message);
+    alert('Could not sign in: ' + err.message);
   });
 }
 
@@ -51,8 +51,8 @@ function renderLoginScreen(deniedEmail) {
       '<div style="font-size:48px;margin-bottom:12px">📦</div>' +
       '<h2 style="margin-bottom:6px">Cocktails Manila Inventory</h2>' +
       (deniedEmail
-        ? '<div class="notice red" style="max-width:320px;margin:12px auto">🚫 Hindi awtorisado ang account na "' + esc(deniedEmail) + '". Pakikontak si Meanne kung kailangan mo ng access.</div>'
-        : '<p class="hint">Mag-login gamit ang Google account na binigay sa iyo.</p>') +
+        ? '<div class="notice red" style="max-width:320px;margin:12px auto">🚫 The account "' + esc(deniedEmail) + '" is not authorized. Please contact Meanne if you need access.</div>'
+        : '<p class="hint">Sign in with the Google account provided to you.</p>') +
       '<button class="btn btn-primary" style="margin-top:16px" onclick="doGoogleLogin()">🔐 Sign in with Google</button>' +
     '</div>';
 }
@@ -62,9 +62,9 @@ var db = loadDB();
 var route = { tab: 'events', eventId: null, lead: null };
 var dbSearch = '';
 var dbFilter = 'all';
-var photoTemp = null;        // dataURL habang nag-e-edit ng item form
-var photoCallback = null;    // tatawagin pag may na-capture na photo
-var pickerCallback = null;   // tatawagin pag may napiling item sa picker
+var photoTemp = null;        // dataURL while editing item form
+var photoCallback = null;    // called when a photo is captured
+var pickerCallback = null;   // called when an item is picked
 
 /* ---------- storage ---------- */
 function loadDB() {
@@ -74,27 +74,27 @@ function loadDB() {
       var d = JSON.parse(raw);
       if (d && d.items && d.events && d.deliveries) return d;
     }
-  } catch (e) { /* corrupted → seed na lang */ }
+  } catch (e) { /* corrupted -> just seed */ }
   return seedDB();
 }
 
 function saveDB() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(db));
-  } catch (e) { /* backup cache lang ito, hindi kritikal */ }
+  } catch (e) { /* just a backup cache, not critical */ }
   if (CLOUD_DOC) {
     CLOUD_DOC.set(db).catch(function (e) {
       console.error('Cloud save error', e);
-      toast('⚠️ Walang internet — hindi nai-sync sa ibang device.');
+      toast('⚠️ No internet — not synced to other devices.');
     });
   } else {
-    alert('Hindi na-save! Baka puno na ang storage ng device. I-export ang backup at burahin ang mga lumang litrato.');
+    alert('Could not save! Device storage may be full. Export a backup and delete old photos.');
   }
 }
 
 function seedDB() {
-  // Sample items para may makita agad ang team sa unang bukas.
-  // Pwedeng i-edit o burahin lahat sa Database tab.
+  // Sample items so the team sees something on first launch.
+  // Can be edited or deleted in the Database tab.
   function it(name, category, opts) {
     var o = opts || {};
     return {
@@ -102,8 +102,8 @@ function seedDB() {
       disposable: !!o.disposable,
       unit: o.unit || 'pcs',
       price: o.price || 0,
-      owned: o.owned || 0,       // para sa non-disposable (balikan)
-      stock: o.stock || 0,       // para sa consumable (nauubos)
+      owned: o.owned || 0,       // for non-disposable (returnable)
+      stock: o.stock || 0,       // for consumable (runs out)
       reorderPoint: o.reorder || 0,
       photo: null, notes: ''
     };
@@ -160,7 +160,7 @@ function getEvent(id) {
 function catLabel(it) {
   if (it.category === 'event') return 'Event Item';
   if (it.category === 'food') return 'Food';
-  return it.disposable ? 'Toolbox · Disposable' : 'Toolbox · Balikan';
+  return it.disposable ? 'Toolbox · Disposable' : 'Toolbox · Returnable';
 }
 function catIcon(it) {
   if (it.category === 'event') return '🎪';
@@ -172,7 +172,7 @@ function isConsumable(it) {
 }
 
 /* ---------- derived numbers ---------- */
-// Kabuuang nasira/nawala sa lahat ng events (binabawas sa owned)
+// Total damaged/lost across all events (deducted from owned)
 function totalDamagedLost(itemId) {
   var t = 0;
   db.events.forEach(function (ev) {
@@ -182,7 +182,7 @@ function totalDamagedLost(itemId) {
   });
   return t;
 }
-// Nasa labas pa (open events): out - returned - damaged - lost
+// Still out (open events): out - returned - damaged - lost
 function pendingOut(itemId) {
   var t = 0;
   db.events.forEach(function (ev) {
@@ -267,7 +267,7 @@ function render() {
 }
 
 /* ============================================================
-   TAB: DATABASE (master list ng lahat ng items)
+   TAB: DATABASE (master list of all items)
    ============================================================ */
 function renderDatabase() {
   var q = dbSearch.trim().toLowerCase();
@@ -284,26 +284,26 @@ function renderDatabase() {
   items.sort(function (a, b) { return a.name.localeCompare(b.name); });
 
   var chips = [
-    ['all', 'Lahat'], ['event', '🎪 Event'], ['toolbox-n', '🧰 Balikan'],
+    ['all', 'All'], ['event', '🎪 Event'], ['toolbox-n', '🧰 Returnable'],
     ['toolbox-d', '🧰 Disposable'], ['food', '🍲 Food']
   ];
 
-  var html = '<input class="search" placeholder="🔍 Hanapin ang item…" value="' + esc(dbSearch) + '" oninput="dbSearch=this.value;refreshDbList()">';
+  var html = '<input class="search" placeholder="🔍 Search for an item…" value="' + esc(dbSearch) + '" oninput="dbSearch=this.value;refreshDbList()">';
   html += '<div class="chips">' + chips.map(function (c) {
     return '<button class="chip' + (dbFilter === c[0] ? ' active' : '') + '" onclick="dbFilter=\'' + c[0] + '\';render()">' + c[1] + '</button>';
   }).join('') + '</div>';
 
-  html += '<button class="btn-add" onclick="openItemForm()">＋ Bagong Item</button>';
+  html += '<button class="btn-add" onclick="openItemForm()">＋ New Item</button>';
   html += '<div id="dbList">' + dbListHTML(items) + '</div>';
   return html;
 }
 
 function dbListHTML(items) {
-  if (!items.length) return '<div class="empty">Walang item. Pindutin ang "＋ Bagong Item" para magdagdag.</div>';
+  if (!items.length) return '<div class="empty">No items. Tap "＋ New Item" to add one.</div>';
   return items.map(function (it) { return itemCard(it); }).join('');
 }
 
-// ina-update lang ang listahan (hindi buong page) para hindi nagsasara ang keyboard habang nagse-search
+// only updates the list (not the whole page) so the keyboard doesn't close while searching
 function refreshDbList() {
   var el = document.getElementById('dbList');
   if (!el) return;
@@ -330,10 +330,10 @@ function itemCard(it) {
   var right;
   if (isConsumable(it)) {
     right = '<div class="stat-num" style="' + (low ? 'color:var(--red)' : '') + '">' + avail + ' ' + esc(it.unit) + '</div>' +
-            '<div class="stat-label">' + (low ? '⚠️ Mag-order na!' : 'stock') + '</div>';
+            '<div class="stat-label">' + (low ? '⚠️ Reorder now!' : 'stock') + '</div>';
   } else {
     right = '<div class="stat-num">' + avail + '/' + ownedEffective(it) + '</div>' +
-            '<div class="stat-label">' + (out > 0 ? out + ' nasa labas' : 'kumpleto') + '</div>';
+            '<div class="stat-label">' + (out > 0 ? out + ' out' : 'complete') + '</div>';
   }
   return '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' +
     photoThumb(it) +
@@ -352,32 +352,32 @@ function openItemForm(id) {
   var it = id ? getItem(id) : null;
   photoTemp = it ? it.photo : null;
   var consumable = it ? isConsumable(it) : false;
-  var html = '<h3>' + (it ? 'I-edit ang Item' : 'Bagong Item') + '</h3>' +
+  var html = '<h3>' + (it ? 'Edit Item' : 'New Item') + '</h3>' +
     '<div class="photo-box" onclick="capturePhoto(function(d){photoTemp=d;refreshFormPhoto()})">' +
       '<div id="formPhoto">' + formPhotoHTML() + '</div>' +
-      '<div class="photo-hint">📷 ' + (photoTemp ? 'Palitan' : 'Kumuha ng litrato') + '</div>' +
+      '<div class="photo-hint">📷 ' + (photoTemp ? 'Change' : 'Take a photo') + '</div>' +
     '</div>' +
-    '<div class="field"><label>Pangalan ng Item</label><input id="f_name" value="' + esc(it ? it.name : '') + '" placeholder="hal. Chafing Dish"></div>' +
-    '<div class="field"><label>Kategorya</label><select id="f_cat" onchange="itemFormToggle()">' +
-      opt('event', '🎪 Event Item (balikan)', it && it.category === 'event') +
-      opt('toolbox-n', '🧰 Toolbox — Balikan (pang-serve)', it && it.category === 'toolbox' && !it.disposable) +
-      opt('toolbox-d', '🧰 Toolbox — Disposable (nauubos)', it && it.category === 'toolbox' && it.disposable) +
+    '<div class="field"><label>Item Name</label><input id="f_name" value="' + esc(it ? it.name : '') + '" placeholder="e.g. Chafing Dish"></div>' +
+    '<div class="field"><label>Category</label><select id="f_cat" onchange="itemFormToggle()">' +
+      opt('event', '🎪 Event Item (returnable)', it && it.category === 'event') +
+      opt('toolbox-n', '🧰 Toolbox — Returnable (serving)', it && it.category === 'toolbox' && !it.disposable) +
+      opt('toolbox-d', '🧰 Toolbox — Disposable (runs out)', it && it.category === 'toolbox' && it.disposable) +
       opt('food', '🍲 Food / Storage', it && it.category === 'food') +
     '</select></div>' +
     '<div class="field-row">' +
       '<div class="field"><label>Unit</label><input id="f_unit" value="' + esc(it ? it.unit : 'pcs') + '" placeholder="pcs / kg / L"></div>' +
-      '<div class="field"><label>Presyo per unit (' + PESO + ')</label><input id="f_price" type="number" inputmode="decimal" min="0" step="any" value="' + (it ? it.price : '') + '" placeholder="0"></div>' +
+      '<div class="field"><label>Price per unit (' + PESO + ')</label><input id="f_price" type="number" inputmode="decimal" min="0" step="any" value="' + (it ? it.price : '') + '" placeholder="0"></div>' +
     '</div>' +
     '<div class="field-row" id="f_nonconsRow" ' + (consumable ? 'style="display:none"' : '') + '>' +
-      '<div class="field"><label>Ilan ang pag-aari (owned)</label><input id="f_owned" type="number" inputmode="numeric" min="0" value="' + (it ? it.owned : '') + '" placeholder="0"></div>' +
+      '<div class="field"><label>Quantity owned</label><input id="f_owned" type="number" inputmode="numeric" min="0" value="' + (it ? it.owned : '') + '" placeholder="0"></div>' +
     '</div>' +
     '<div class="field-row" id="f_consRow" ' + (consumable ? '' : 'style="display:none"') + '>' +
-      '<div class="field"><label>Stock ngayon</label><input id="f_stock" type="number" inputmode="decimal" min="0" step="any" value="' + (it ? it.stock : '') + '" placeholder="0"></div>' +
+      '<div class="field"><label>Current stock</label><input id="f_stock" type="number" inputmode="decimal" min="0" step="any" value="' + (it ? it.stock : '') + '" placeholder="0"></div>' +
       '<div class="field"><label>Reorder point</label><input id="f_reorder" type="number" inputmode="decimal" min="0" step="any" value="' + (it ? it.reorderPoint : '') + '" placeholder="0"></div>' +
     '</div>' +
     '<div class="btn-row">' +
-      (it ? '<button class="btn btn-danger" onclick="deleteItem(\'' + it.id + '\')">Burahin</button>' : '') +
-      '<button class="btn btn-primary" onclick="saveItemForm(' + (it ? '\'' + it.id + '\'' : 'null') + ')">I-save</button>' +
+      (it ? '<button class="btn btn-danger" onclick="deleteItem(\'' + it.id + '\')">Delete</button>' : '') +
+      '<button class="btn btn-primary" onclick="saveItemForm(' + (it ? '\'' + it.id + '\'' : 'null') + ')">Save</button>' +
     '</div>';
   openModal(html);
 }
@@ -401,7 +401,7 @@ function itemFormToggle() {
 
 function saveItemForm(id) {
   var name = document.getElementById('f_name').value.trim();
-  if (!name) { alert('Ilagay ang pangalan ng item.'); return; }
+  if (!name) { alert('Enter the item name.'); return; }
   var cat = document.getElementById('f_cat').value;
   var it = id ? getItem(id) : null;
   if (!it) { it = { id: uid(), photo: null, notes: '' }; db.items.push(it); }
@@ -415,7 +415,7 @@ function saveItemForm(id) {
   it.reorderPoint = num(document.getElementById('f_reorder').value);
   it.photo = photoTemp;
   saveDB(); closeModal(); render();
-  toast('✅ Na-save: ' + name);
+  toast('✅ Saved: ' + name);
 }
 
 function deleteItem(id) {
@@ -426,12 +426,12 @@ function deleteItem(id) {
            (ev.usage || []).some(function (u) { return u.itemId === id; });
   });
   var msg = used
-    ? 'Ginamit na ang "' + it.name + '" sa mga event record. Kapag binura, mawawala ito sa mga listahan. Ituloy?'
-    : 'Burahin ang "' + it.name + '"?';
+    ? '"' + it.name + '" has already been used in event records. Deleting it will remove it from the lists. Continue?'
+    : 'Delete "' + it.name + '"?';
   if (!confirm(msg)) return;
   db.items = db.items.filter(function (x) { return x.id !== id; });
   saveDB(); closeModal(); render();
-  toast('🗑️ Binura: ' + it.name);
+  toast('🗑️ Deleted: ' + it.name);
 }
 
 /* ============================================================
@@ -443,15 +443,15 @@ function renderEvents() {
   open.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
   closed.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
-  var html = '<button class="btn-add" onclick="openEventForm()">＋ Bagong Event</button>';
+  var html = '<button class="btn-add" onclick="openEventForm()">＋ New Event</button>';
 
-  html += '<div class="section-title">Mga Bukas na Event (' + open.length + ')</div>';
-  html += open.length ? open.map(eventCard).join('') : '<div class="empty">Walang bukas na event.</div>';
+  html += '<div class="section-title">Open Events (' + open.length + ')</div>';
+  html += open.length ? open.map(eventCard).join('') : '<div class="empty">No open events.</div>';
 
   if (closed.length) {
-    html += '<div class="section-title">Tapos na (' + closed.length + ')</div>';
+    html += '<div class="section-title">Completed (' + closed.length + ')</div>';
     html += closed.slice(0, 20).map(eventCard).join('');
-    if (closed.length > 20) html += '<div class="hint" style="text-align:center">…at ' + (closed.length - 20) + ' pang mas luma</div>';
+    if (closed.length > 20) html += '<div class="hint" style="text-align:center">…and ' + (closed.length - 20) + ' more</div>';
   }
   return html;
 }
@@ -461,9 +461,9 @@ function eventCard(ev) {
   var issues = eventIssues(ev);
   var badge;
   if (ev.status === 'closed') {
-    badge = issues > 0 ? '<span class="badge b-amber">Sarado · may nasira/nawala (' + money(eventDamageValue(ev)) + ')</span>' : '<span class="badge b-gray">Sarado ✓</span>';
+    badge = issues > 0 ? '<span class="badge b-amber">Closed · has damaged/lost items (' + money(eventDamageValue(ev)) + ')</span>' : '<span class="badge b-gray">Closed ✓</span>';
   } else {
-    badge = pend > 0 ? '<span class="badge b-red">' + pend + ' hindi pa naibabalik</span>' : '<span class="badge b-green">Kumpleto ang balik</span>';
+    badge = pend > 0 ? '<span class="badge b-red">' + pend + ' not yet returned</span>' : '<span class="badge b-green">All returned</span>';
   }
   var val = eventValueOut(ev) + eventUsageCost(ev);
   return '<div class="card tappable" onclick="go(\'eventDetail\',\'' + ev.id + '\')">' +
@@ -472,30 +472,30 @@ function eventCard(ev) {
       '<div class="item-meta">📅 ' + fmtDate(ev.date) + (ev.venue ? ' · 📍 ' + esc(ev.venue) : '') + '</div>' +
       '<div class="item-meta">👤 Lead: ' + esc(ev.lead || '—') + ' · ✔️ Checker: ' + esc(ev.checker || '—') + '</div>' +
     '</div>' +
-    '<div><div class="stat-num">' + money(val) + '</div><div class="stat-label">halaga</div></div></div>' +
+    '<div><div class="stat-num">' + money(val) + '</div><div class="stat-label">value</div></div></div>' +
     '<div style="margin-top:8px">' + badge + '</div>' +
     '</div>';
 }
 
 function openEventForm(id) {
   var ev = id ? getEvent(id) : null;
-  var html = '<h3>' + (ev ? 'I-edit ang Event' : 'Bagong Event') + '</h3>' +
-    '<div class="field"><label>Pangalan ng Event / Client</label><input id="e_name" value="' + esc(ev ? ev.name : '') + '" placeholder="hal. Santos Wedding"></div>' +
+  var html = '<h3>' + (ev ? 'Edit Event' : 'New Event') + '</h3>' +
+    '<div class="field"><label>Event / Client Name</label><input id="e_name" value="' + esc(ev ? ev.name : '') + '" placeholder="e.g. Santos Wedding"></div>' +
     '<div class="field-row">' +
-      '<div class="field"><label>Petsa</label><input id="e_date" type="date" value="' + esc(ev ? ev.date : today()) + '"></div>' +
-      '<div class="field"><label>Venue</label><input id="e_venue" value="' + esc(ev ? ev.venue : '') + '" placeholder="hal. Tagaytay"></div>' +
+      '<div class="field"><label>Date</label><input id="e_date" type="date" value="' + esc(ev ? ev.date : today()) + '"></div>' +
+      '<div class="field"><label>Venue</label><input id="e_venue" value="' + esc(ev ? ev.venue : '') + '" placeholder="e.g. Tagaytay"></div>' +
     '</div>' +
     '<div class="field-row">' +
-      '<div class="field"><label>Lead (in-charge sa event)</label><input id="e_lead" value="' + esc(ev ? ev.lead : '') + '" placeholder="Pangalan"></div>' +
-      '<div class="field"><label>Checker (nag-e-encode)</label><input id="e_checker" value="' + esc(ev ? ev.checker : '') + '" placeholder="Pangalan"></div>' +
+      '<div class="field"><label>Lead (in-charge of the event)</label><input id="e_lead" value="' + esc(ev ? ev.lead : '') + '" placeholder="Name"></div>' +
+      '<div class="field"><label>Checker (encoding)</label><input id="e_checker" value="' + esc(ev ? ev.checker : '') + '" placeholder="Name"></div>' +
     '</div>' +
-    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveEventForm(' + (ev ? '\'' + ev.id + '\'' : 'null') + ')">I-save</button></div>';
+    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveEventForm(' + (ev ? '\'' + ev.id + '\'' : 'null') + ')">Save</button></div>';
   openModal(html);
 }
 
 function saveEventForm(id) {
   var name = document.getElementById('e_name').value.trim();
-  if (!name) { alert('Ilagay ang pangalan ng event.'); return; }
+  if (!name) { alert('Enter the event name.'); return; }
   var ev = id ? getEvent(id) : null;
   var isNew = !ev;
   if (!ev) { ev = { id: uid(), status: 'open', lines: [], usage: [] }; db.events.push(ev); }
@@ -506,77 +506,77 @@ function saveEventForm(id) {
   ev.checker = document.getElementById('e_checker').value.trim();
   saveDB(); closeModal();
   if (isNew) go('eventDetail', ev.id); else render();
-  toast('✅ Na-save ang event');
+  toast('✅ Event saved');
 }
 
 /* ---- event detail ---- */
 function renderEventDetail(id) {
   var ev = getEvent(id);
-  if (!ev) return '<div class="empty">Hindi nahanap ang event.</div>';
+  if (!ev) return '<div class="empty">Event not found.</div>';
   var closed = ev.status === 'closed';
   var pend = eventPending(ev);
   var issues = eventIssues(ev);
 
-  var html = '<button class="back-btn" onclick="go(\'events\')">← Bumalik sa Events</button>';
+  var html = '<button class="back-btn" onclick="go(\'events\')">← Back to Events</button>';
 
   html += '<div class="card"><div class="row"><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(ev.name) + '</div>' +
     '<div class="item-meta">📅 ' + fmtDate(ev.date) + (ev.venue ? ' · 📍 ' + esc(ev.venue) : '') + '</div>' +
     '<div class="item-meta">👤 Lead: <b>' + esc(ev.lead || '—') + '</b> · ✔️ Checker: <b>' + esc(ev.checker || '—') + '</b></div>' +
     '</div>' +
-    (!closed ? '<button class="btn btn-sm" onclick="openEventForm(\'' + ev.id + '\')">✏️</button>' : '<span class="badge b-gray">SARADO</span>') +
+    (!closed ? '<button class="btn btn-sm" onclick="openEventForm(\'' + ev.id + '\')">✏️</button>' : '<span class="badge b-gray">CLOSED</span>') +
     '</div></div>';
 
-  if (!closed && pend > 0) html += '<div class="notice red">⚠️ May ' + pend + ' item na hindi pa naibabalik.</div>';
-  if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">✅ Kumpleto ang naibalik. Pwede nang isara ang event.</div>';
-  if (closed && issues > 0) html += '<div class="notice amber">⚠️ May ' + issues + ' item na nasira o nawala sa event na ito (' + money(eventDamageValue(ev)) + ').</div>';
+  if (!closed && pend > 0) html += '<div class="notice red">⚠️ ' + pend + ' item(s) not yet returned.</div>';
+  if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">✅ All items returned. This event can now be closed.</div>';
+  if (closed && issues > 0) html += '<div class="notice amber">⚠️ ' + issues + ' item(s) damaged or lost in this event (' + money(eventDamageValue(ev)) + ').</div>';
 
   // summary tiles
   html += '<div class="tiles">' +
-    tile(money(eventValueOut(ev)), 'Halaga ng nilabas na gamit') +
-    tile(money(eventUsageCost(ev, 'food')), 'Gastos sa food') +
+    tile(money(eventValueOut(ev)), 'Value of items released') +
+    tile(money(eventUsageCost(ev, 'food')), 'Food expenses') +
     '</div>';
 
-  /* --- Gamit (balikan): event items + toolbox non-disposable --- */
-  html += '<div class="section-title">🎪 Gamit na Nilabas (balikan)</div>';
+  /* --- Items (returnable): event items + toolbox non-disposable --- */
+  html += '<div class="section-title">🎪 Items Released (returnable)</div>';
   var lines = ev.lines || [];
-  if (!lines.length) html += '<div class="empty">Wala pang nilalabas na gamit.</div>';
+  if (!lines.length) html += '<div class="empty">No items released yet.</div>';
   lines.forEach(function (l, idx) {
     var it = getItem(l.itemId);
-    var name2 = it ? it.name : '(burado na ang item)';
+    var name2 = it ? it.name : '(item deleted)';
     var p = linePending(l);
     html += '<div class="card">' +
       '<div class="row">' + (it ? photoThumb(it) : '<div class="thumb">❓</div>') +
       '<div class="grow"><div class="item-name">' + esc(name2) + '</div>' +
       (l.notes ? '<div class="item-meta">📝 ' + esc(l.notes) + '</div>' : '') + '</div>' +
-      (!closed ? '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Ibalik</button>' : '') +
+      (!closed ? '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Return</button>' : '') +
       '</div>' +
       '<div class="line-grid">' +
-        '<div><div class="lg-num">' + l.out + '</div><div class="lg-label">LABAS</div></div>' +
-        '<div><div class="lg-num">' + (l.returned || 0) + '</div><div class="lg-label">BALIK</div></div>' +
-        '<div><div class="lg-num">' + ((l.damaged || 0) + (l.lost || 0)) + '</div><div class="lg-label">SIRA/NAWALA</div></div>' +
+        '<div><div class="lg-num">' + l.out + '</div><div class="lg-label">OUT</div></div>' +
+        '<div><div class="lg-num">' + (l.returned || 0) + '</div><div class="lg-label">RETURNED</div></div>' +
+        '<div><div class="lg-num">' + ((l.damaged || 0) + (l.lost || 0)) + '</div><div class="lg-label">DAMAGED/LOST</div></div>' +
         '<div class="' + (p > 0 ? 'pend' : 'ok') + '"><div class="lg-num">' + p + '</div><div class="lg-label">PENDING</div></div>' +
       '</div></div>';
   });
-  if (!closed) html += '<button class="btn-add" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Maglabas ng Gamit</button>';
+  if (!closed) html += '<button class="btn-add" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button>';
 
   /* --- Consumables: toolbox disposables --- */
-  html += '<div class="section-title">🧰 Disposables na Ginamit</div>';
+  html += '<div class="section-title">🧰 Disposables Used</div>';
   html += usageList(ev, 'toolbox', closed);
-  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Gumamit ng Disposable</button>';
+  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button>';
 
   /* --- Food used --- */
-  html += '<div class="section-title">🍲 Food na Ginamit</div>';
+  html += '<div class="section-title">🍲 Food Used</div>';
   html += usageList(ev, 'food', closed);
-  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Gumamit ng Food</button>';
+  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button>';
 
   /* --- close --- */
   if (!closed) {
     html += '<div class="btn-row" style="margin-top:16px">' +
-      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Burahin</button>' +
-      '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">🔒 Isara ang Event</button>' +
+      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' +
+      '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">🔒 Close Event</button>' +
     '</div>';
-    html += '<div class="hint" style="text-align:center;margin-top:6px">Isara kapag tapos na ang event at nabilang na lahat ng gamit.</div>';
+    html += '<div class="hint" style="text-align:center;margin-top:6px">Close this once the event is done and all items have been accounted for.</div>';
   }
   return html;
 }
@@ -588,7 +588,7 @@ function tile(numStr, label, cls) {
 function usageList(ev, category, closed) {
   var rows = (ev.usage || []).map(function (u, idx) { return { u: u, idx: idx }; })
     .filter(function (r) { var it = getItem(r.u.itemId); return it && it.category === category; });
-  if (!rows.length) return '<div class="empty">Wala pa.</div>';
+  if (!rows.length) return '<div class="empty">None yet.</div>';
   return rows.map(function (r) {
     var it = getItem(r.u.itemId);
     var cost = (r.u.qty || 0) * (r.u.cost != null ? r.u.cost : (it.price || 0));
@@ -600,23 +600,23 @@ function usageList(ev, category, closed) {
   }).join('');
 }
 
-/* ---- release (maglabas) ---- */
+/* ---- release ---- */
 function openReleasePicker(evId) {
   openPicker(
     function (it) { return !isConsumable(it); },
     function (item) { openReleaseQty(evId, item.id); },
-    'Piliin ang ilalabas na gamit'
+    'Select item to release'
   );
 }
 
 function openReleaseQty(evId, itemId) {
   var it = getItem(itemId);
   var avail = availableNow(it);
-  var html = '<h3>Ilabas: ' + esc(it.name) + '</h3>' +
-    '<div class="hint" style="margin-bottom:10px">Available ngayon: <b>' + avail + '</b> sa ' + ownedEffective(it) + ' ' + esc(it.unit) + '</div>' +
-    '<div class="field"><label>Ilang ' + esc(it.unit) + ' ang ilalabas?</label><input id="r_qty" type="number" inputmode="numeric" min="1" placeholder="0" autofocus></div>' +
-    '<div class="field"><label>Notes (optional)</label><input id="r_notes" placeholder="hal. kasama sa Van 2"></div>' +
-    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doRelease(\'' + evId + '\',\'' + itemId + '\')">I-save ang Labas</button></div>';
+  var html = '<h3>Release: ' + esc(it.name) + '</h3>' +
+    '<div class="hint" style="margin-bottom:10px">Available now: <b>' + avail + '</b> of ' + ownedEffective(it) + ' ' + esc(it.unit) + '</div>' +
+    '<div class="field"><label>How many ' + esc(it.unit) + ' to release?</label><input id="r_qty" type="number" inputmode="numeric" min="1" placeholder="0" autofocus></div>' +
+    '<div class="field"><label>Notes (optional)</label><input id="r_notes" placeholder="e.g. included in Van 2"></div>' +
+    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doRelease(\'' + evId + '\',\'' + itemId + '\')">Save Release</button></div>';
   openModal(html);
 }
 
@@ -624,11 +624,11 @@ function doRelease(evId, itemId) {
   var ev = getEvent(evId); var it = getItem(itemId);
   if (!ev || !it) return;
   var qty = Math.round(num(document.getElementById('r_qty').value));
-  if (qty <= 0) { alert('Ilagay kung ilan ang ilalabas.'); return; }
+  if (qty <= 0) { alert('Enter how many to release.'); return; }
   var avail = availableNow(it);
-  if (qty > avail && !confirm('Babala: ' + avail + ' lang ang available na ' + it.name + '. Ituloy pa rin ang ' + qty + '?')) return;
+  if (qty > avail && !confirm('Warning: only ' + avail + ' ' + it.name + ' available. Proceed with ' + qty + ' anyway?')) return;
   var notes = document.getElementById('r_notes').value.trim();
-  // kung may existing line na sa item na ito, dagdagan na lang
+  // if a line already exists for this item, just add to it
   var line = null;
   (ev.lines || []).forEach(function (l) { if (l.itemId === itemId) line = l; });
   if (line) {
@@ -638,20 +638,20 @@ function doRelease(evId, itemId) {
     ev.lines.push({ itemId: itemId, out: qty, returned: 0, damaged: 0, lost: 0, notes: notes });
   }
   saveDB(); closeModal(); render();
-  toast('📤 Nilabas: ' + qty + ' ' + it.name);
+  toast('📤 Released: ' + qty + ' ' + it.name);
 }
 
-/* ---- return (ibalik) ---- */
+/* ---- return ---- */
 function openReturnForm(evId, lineIdx) {
   var ev = getEvent(evId); var l = ev.lines[lineIdx];
   var it = getItem(l.itemId);
   var p = linePending(l);
-  var html = '<h3>Ibalik: ' + esc(it ? it.name : '') + '</h3>' +
-    '<div class="hint" style="margin-bottom:10px">Nilabas: <b>' + l.out + '</b> · Naibalik na: <b>' + (l.returned || 0) + '</b> · Pending: <b style="color:var(--red)">' + p + '</b></div>' +
-    '<div class="field"><label>Ilang maayos ang naibalik?</label><input id="rt_ok" type="number" inputmode="numeric" min="0" max="' + p + '" value="' + p + '"></div>' +
-    '<div class="field"><label>Ilang sira / nawasak?</label><input id="rt_dmg" type="number" inputmode="numeric" min="0" max="' + p + '" value="0"></div>' +
-    '<div class="field"><label>Notes (optional)</label><input id="rt_notes" placeholder="hal. basag ang takip"></div>' +
-    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doReturn(\'' + evId + '\',' + lineIdx + ')">I-save ang Balik</button></div>';
+  var html = '<h3>Return: ' + esc(it ? it.name : '') + '</h3>' +
+    '<div class="hint" style="margin-bottom:10px">Released: <b>' + l.out + '</b> · Already returned: <b>' + (l.returned || 0) + '</b> · Pending: <b style="color:var(--red)">' + p + '</b></div>' +
+    '<div class="field"><label>How many returned in good condition?</label><input id="rt_ok" type="number" inputmode="numeric" min="0" max="' + p + '" value="' + p + '"></div>' +
+    '<div class="field"><label>How many damaged / broken?</label><input id="rt_dmg" type="number" inputmode="numeric" min="0" max="' + p + '" value="0"></div>' +
+    '<div class="field"><label>Notes (optional)</label><input id="rt_notes" placeholder="e.g. lid cracked"></div>' +
+    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doReturn(\'' + evId + '\',' + lineIdx + ')">Save Return</button></div>';
   openModal(html);
 }
 
@@ -662,14 +662,14 @@ function doReturn(evId, lineIdx) {
   var ok = Math.round(num(document.getElementById('rt_ok').value));
   var dmg = Math.round(num(document.getElementById('rt_dmg').value));
   if (ok < 0 || dmg < 0) return;
-  if (ok + dmg > p) { alert('Sobra! ' + p + ' lang ang pending na maibabalik.'); return; }
-  if (ok + dmg === 0) { alert('Ilagay kung ilan ang naibalik o nasira.'); return; }
+  if (ok + dmg > p) { alert('Too many! Only ' + p + ' pending items can be returned.'); return; }
+  if (ok + dmg === 0) { alert('Enter how many were returned or damaged.'); return; }
   l.returned = (l.returned || 0) + ok;
   l.damaged = (l.damaged || 0) + dmg;
   var notes = document.getElementById('rt_notes').value.trim();
   if (notes) l.notes = (l.notes ? l.notes + '; ' : '') + notes;
   saveDB(); closeModal(); render();
-  toast('📥 Naibalik: ' + ok + (dmg ? ' · Sira: ' + dmg : '') + ' — ' + (it ? it.name : ''));
+  toast('📥 Returned: ' + ok + (dmg ? ' · Damaged: ' + dmg : '') + ' — ' + (it ? it.name : ''));
 }
 
 /* ---- usage (consumables) ---- */
@@ -677,16 +677,16 @@ function openUsagePicker(evId, category) {
   openPicker(
     function (it) { return isConsumable(it) && it.category === category; },
     function (item) { openUsageQty(evId, item.id); },
-    category === 'food' ? 'Piliin ang food na ginamit' : 'Piliin ang disposable na ginamit'
+    category === 'food' ? 'Select food used' : 'Select disposable used'
   );
 }
 
 function openUsageQty(evId, itemId) {
   var it = getItem(itemId);
-  var html = '<h3>Gamitin: ' + esc(it.name) + '</h3>' +
-    '<div class="hint" style="margin-bottom:10px">Stock ngayon: <b>' + (it.stock || 0) + ' ' + esc(it.unit) + '</b></div>' +
-    '<div class="field"><label>Ilang ' + esc(it.unit) + ' ang ginamit?</label><input id="u_qty" type="number" inputmode="decimal" min="0" step="any" placeholder="0" autofocus></div>' +
-    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doUsage(\'' + evId + '\',\'' + itemId + '\')">I-save</button></div>';
+  var html = '<h3>Use: ' + esc(it.name) + '</h3>' +
+    '<div class="hint" style="margin-bottom:10px">Current stock: <b>' + (it.stock || 0) + ' ' + esc(it.unit) + '</b></div>' +
+    '<div class="field"><label>How many ' + esc(it.unit) + ' were used?</label><input id="u_qty" type="number" inputmode="decimal" min="0" step="any" placeholder="0" autofocus></div>' +
+    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doUsage(\'' + evId + '\',\'' + itemId + '\')">Save</button></div>';
   openModal(html);
 }
 
@@ -694,8 +694,8 @@ function doUsage(evId, itemId) {
   var ev = getEvent(evId); var it = getItem(itemId);
   if (!ev || !it) return;
   var qty = num(document.getElementById('u_qty').value);
-  if (qty <= 0) { alert('Ilagay kung ilan ang ginamit.'); return; }
-  if (qty > (it.stock || 0) && !confirm('Babala: ' + (it.stock || 0) + ' ' + it.unit + ' lang ang stock ng ' + it.name + '. Ituloy pa rin?')) return;
+  if (qty <= 0) { alert('Enter how many were used.'); return; }
+  if (qty > (it.stock || 0) && !confirm('Warning: only ' + (it.stock || 0) + ' ' + it.unit + ' of ' + it.name + ' in stock. Proceed anyway?')) return;
   var u = null;
   (ev.usage || []).forEach(function (x) { if (x.itemId === itemId) u = x; });
   if (u) { u.qty += qty; }
@@ -703,18 +703,18 @@ function doUsage(evId, itemId) {
   it.stock = Math.max(0, (it.stock || 0) - qty);
   saveDB(); closeModal(); render();
   var low = it.reorderPoint > 0 && it.stock <= it.reorderPoint;
-  toast('✅ Ginamit: ' + qty + ' ' + it.unit + ' ' + it.name + (low ? ' — ⚠️ mababa na ang stock!' : ''));
+  toast('✅ Used: ' + qty + ' ' + it.unit + ' ' + it.name + (low ? ' — ⚠️ stock running low!' : ''));
 }
 
 function editUsage(evId, usageIdx) {
   var ev = getEvent(evId); var u = ev.usage[usageIdx];
   var it = getItem(u.itemId);
-  var html = '<h3>I-edit: ' + esc(it.name) + '</h3>' +
-    '<div class="hint" style="margin-bottom:10px">Naka-record: <b>' + u.qty + ' ' + esc(it.unit) + '</b>. Kapag binawasan, babalik sa stock ang sobra (hal. naibalik na hindi nagamit).</div>' +
-    '<div class="field"><label>Tamang dami ng ginamit</label><input id="ue_qty" type="number" inputmode="decimal" min="0" step="any" value="' + u.qty + '"></div>' +
+  var html = '<h3>Edit: ' + esc(it.name) + '</h3>' +
+    '<div class="hint" style="margin-bottom:10px">Recorded: <b>' + u.qty + ' ' + esc(it.unit) + '</b>. If you reduce this, the difference is returned to stock (e.g. it wasn\'t actually used).</div>' +
+    '<div class="field"><label>Correct quantity used</label><input id="ue_qty" type="number" inputmode="decimal" min="0" step="any" value="' + u.qty + '"></div>' +
     '<div class="btn-row">' +
-      '<button class="btn btn-danger" onclick="saveUsageEdit(\'' + evId + '\',' + usageIdx + ',true)">Tanggalin</button>' +
-      '<button class="btn btn-primary" onclick="saveUsageEdit(\'' + evId + '\',' + usageIdx + ',false)">I-save</button>' +
+      '<button class="btn btn-danger" onclick="saveUsageEdit(\'' + evId + '\',' + usageIdx + ',true)">Remove</button>' +
+      '<button class="btn btn-primary" onclick="saveUsageEdit(\'' + evId + '\',' + usageIdx + ',false)">Save</button>' +
     '</div>';
   openModal(html);
 }
@@ -724,12 +724,12 @@ function saveUsageEdit(evId, usageIdx, remove) {
   var it = getItem(u.itemId);
   var newQty = remove ? 0 : num(document.getElementById('ue_qty').value);
   if (newQty < 0) return;
-  var diff = u.qty - newQty;        // positive = ibabalik sa stock
+  var diff = u.qty - newQty;        // positive = return to stock
   if (it) it.stock = Math.max(0, (it.stock || 0) + diff);
   if (newQty === 0) ev.usage.splice(usageIdx, 1);
   else u.qty = newQty;
   saveDB(); closeModal(); render();
-  toast('✅ Na-update');
+  toast('✅ Updated');
 }
 
 /* ---- close / delete event ---- */
@@ -737,31 +737,31 @@ function closeEvent(evId) {
   var ev = getEvent(evId);
   var pend = eventPending(ev);
   if (pend > 0) {
-    if (!confirm('May ' + pend + ' item pa na HINDI naibabalik. Kapag isinara, itatala ang mga ito bilang NAWALA at ibabawas sa inventory, at lalabas sa record ng lead na si ' + (ev.lead || '—') + '. Ituloy?')) return;
+    if (!confirm('There are still ' + pend + ' item(s) NOT returned. Closing this will mark them as LOST and deduct them from inventory, and it will show up in the record of lead ' + (ev.lead || '—') + '. Continue?')) return;
     (ev.lines || []).forEach(function (l) {
       var p = linePending(l);
       if (p > 0) l.lost = (l.lost || 0) + p;
     });
   } else {
-    if (!confirm('Isara na ang event na ito? Hindi na ito mae-edit pagkatapos.')) return;
+    if (!confirm('Close this event? It cannot be edited afterward.')) return;
   }
   ev.status = 'closed';
   ev.closedAt = today();
   saveDB(); render();
-  toast('🔒 Sarado na ang event');
+  toast('🔒 Event closed');
 }
 
 function deleteEvent(evId) {
   var ev = getEvent(evId);
-  if (!confirm('Burahin ang event na "' + ev.name + '"? Maibabalik sa stock ang mga na-record na ginamit na consumables.')) return;
-  // ibalik sa stock ang mga consumable na nagamit
+  if (!confirm('Delete event "' + ev.name + '"? Recorded consumables used will be returned to stock.')) return;
+  // return consumables used back to stock
   (ev.usage || []).forEach(function (u) {
     var it = getItem(u.itemId);
     if (it) it.stock = (it.stock || 0) + u.qty;
   });
   db.events = db.events.filter(function (e) { return e.id !== evId; });
   saveDB(); go('events');
-  toast('🗑️ Binura ang event');
+  toast('🗑️ Event deleted');
 }
 
 /* ============================================================
@@ -775,34 +775,34 @@ function renderToolbox() {
 
   var html = '<div class="tiles">' +
     tile(String(disposables.length + returnables.length), 'Toolbox items') +
-    tile(String(lowCount), 'Kailangan nang i-order', lowCount ? 'bad' : '') +
+    tile(String(lowCount), 'Need reordering', lowCount ? 'bad' : '') +
     '</div>';
 
-  html += '<div class="section-title">🧰 Disposables (nauubos)</div>';
-  if (!disposables.length) html += '<div class="empty">Wala pang disposable item. Magdagdag sa Database tab.</div>';
+  html += '<div class="section-title">🧰 Disposables (runs out)</div>';
+  if (!disposables.length) html += '<div class="empty">No disposable items yet. Add one in the Database tab.</div>';
   disposables.forEach(function (it) {
     var low = isLow(it);
     html += '<div class="card"><div class="row">' + photoThumb(it) +
       '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
       '<div class="item-meta">Reorder point: ' + (it.reorderPoint || 0) + ' ' + esc(it.unit) + '</div>' +
-      (low ? '<span class="badge b-red">⚠️ Mag-order na!</span>' : '<span class="badge b-green">OK ang stock</span>') +
+      (low ? '<span class="badge b-red">⚠️ Reorder now!</span>' : '<span class="badge b-green">Stock OK</span>') +
       '</div>' +
       '<div><div class="stat-num"' + (low ? ' style="color:var(--red)"' : '') + '>' + (it.stock || 0) + '</div><div class="stat-label">' + esc(it.unit) + '</div>' +
-      '<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="openDeliveryForm(\'' + it.id + '\')">＋ Dating</button></div>' +
+      '<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="openDeliveryForm(\'' + it.id + '\')">＋ Delivery</button></div>' +
       '</div></div>';
   });
 
-  html += '<div class="section-title">🧰 Balikan (pang-serve)</div>';
-  if (!returnables.length) html += '<div class="empty">Wala pang balikan na toolbox item.</div>';
+  html += '<div class="section-title">🧰 Returnable (for serving)</div>';
+  if (!returnables.length) html += '<div class="empty">No returnable toolbox items yet.</div>';
   returnables.forEach(function (it) {
     var out = pendingOut(it.id);
     html += '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
       '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
-      '<div class="item-meta">' + (out > 0 ? '📤 ' + out + ' nasa labas (naka-event)' : '✅ Kumpleto sa bodega') + '</div></div>' +
+      '<div class="item-meta">' + (out > 0 ? '📤 ' + out + ' currently out (at an event)' : '✅ Complete in storage') + '</div></div>' +
       '<div><div class="stat-num">' + availableNow(it) + '/' + ownedEffective(it) + '</div><div class="stat-label">available</div></div>' +
       '</div></div>';
   });
-  html += '<div class="hint" style="margin:4px 2px 14px">Ang paglabas/pagbalik ng mga balikan ay ginagawa sa loob ng bawat <b>Event</b>.</div>';
+  html += '<div class="hint" style="margin:4px 2px 14px">Releasing/returning returnable items is done inside each <b>Event</b>.</div>';
   return html;
 }
 
@@ -810,14 +810,14 @@ function byName(a, b) { return a.name.localeCompare(b.name); }
 function isLow(it) { return it.reorderPoint > 0 && (it.stock || 0) <= it.reorderPoint; }
 
 /* ============================================================
-   TAB: FOOD (storage + weekly deliveries + gastos)
+   TAB: FOOD (storage + weekly deliveries + expenses)
    ============================================================ */
 function renderFood() {
   var foods = db.items.filter(function (it) { return it.category === 'food'; });
   foods.sort(byName);
   var lowCount = foods.filter(isLow).length;
 
-  // gastos this month
+  // expenses this month
   var month = today().slice(0, 7);
   var boughtMonth = 0;
   db.deliveries.forEach(function (d) {
@@ -831,21 +831,21 @@ function renderFood() {
   });
 
   var html = '<div class="tiles">' +
-    tile(money(boughtMonth), 'Binili ngayong buwan') +
-    tile(money(usedMonth), 'Nagamit sa events ngayong buwan') +
+    tile(money(boughtMonth), 'Bought this month') +
+    tile(money(usedMonth), 'Used in events this month') +
     '</div>';
-  if (lowCount) html += '<div class="notice red">⚠️ ' + lowCount + ' food item ang mababa na ang stock.</div>';
+  if (lowCount) html += '<div class="notice red">⚠️ ' + lowCount + ' food item(s) low on stock.</div>';
 
-  html += '<button class="btn-add" onclick="openDeliveryForm()">＋ Bagong Delivery (Weekly Stock)</button>';
+  html += '<button class="btn-add" onclick="openDeliveryForm()">＋ New Delivery (Weekly Stock)</button>';
 
   html += '<div class="section-title">🍲 Storage Levels</div>';
-  if (!foods.length) html += '<div class="empty">Wala pang food item. Magdagdag sa Database tab.</div>';
+  if (!foods.length) html += '<div class="empty">No food items yet. Add one in the Database tab.</div>';
   foods.forEach(function (it) {
     var low = isLow(it);
     html += '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
       '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
-      '<div class="item-meta">' + money(it.price) + '/' + esc(it.unit) + ' · reorder sa ' + (it.reorderPoint || 0) + '</div>' +
-      (low ? '<span class="badge b-red">⚠️ Mag-order na!</span>' : '') +
+      '<div class="item-meta">' + money(it.price) + '/' + esc(it.unit) + ' · reorder at ' + (it.reorderPoint || 0) + '</div>' +
+      (low ? '<span class="badge b-red">⚠️ Reorder now!</span>' : '') +
       '</div>' +
       '<div><div class="stat-num"' + (low ? ' style="color:var(--red)"' : '') + '>' + (it.stock || 0) + '</div><div class="stat-label">' + esc(it.unit) + '</div></div>' +
       '</div></div>';
@@ -862,7 +862,7 @@ function renderFood() {
   order.sort(function (a, b) { return b.localeCompare(a); });
 
   html += '<div class="section-title">📦 Weekly Stock Purchased / Deliveries</div>';
-  if (!order.length) html += '<div class="empty">Wala pang naitalang delivery.</div>';
+  if (!order.length) html += '<div class="empty">No deliveries recorded yet.</div>';
   order.slice(0, 15).forEach(function (key) {
     var rows = groups[key];
     var first = rows[0];
@@ -871,7 +871,7 @@ function renderFood() {
       var it = getItem(d.itemId);
       var t = (d.qty || 0) * (d.cost || 0);
       total += t;
-      return '<div class="item-meta">• ' + esc(it ? it.name : '(burado)') + ' — ' + d.qty + ' ' + esc(it ? it.unit : '') + ' × ' + money(d.cost) + ' = <b>' + money(t) + '</b></div>';
+      return '<div class="item-meta">• ' + esc(it ? it.name : '(deleted)') + ' — ' + d.qty + ' ' + esc(it ? it.unit : '') + ' × ' + money(d.cost) + ' = <b>' + money(t) + '</b></div>';
     }).join('');
     html += '<div class="card">' +
       '<div class="row"><div class="grow">' +
@@ -881,11 +881,11 @@ function renderFood() {
       '<div style="margin-top:8px">' + linesHtml + '</div>' +
       '</div>';
   });
-  if (order.length > 15) html += '<div class="hint" style="text-align:center">…at ' + (order.length - 15) + ' pang mas luma</div>';
+  if (order.length > 15) html += '<div class="hint" style="text-align:center">…and ' + (order.length - 15) + ' more</div>';
   return html;
 }
 
-/* ---- delivery form (stock in) — gamit din sa toolbox disposables ---- */
+/* ---- delivery form (stock in) — also used for toolbox disposables ---- */
 var deliveryLines = [];   // {itemId, qty, cost}
 
 var deliveryHeader = { date: '', supplier: '', checker: '' };
@@ -901,16 +901,16 @@ function openDeliveryForm(presetItemId) {
 }
 
 function renderDeliveryModal() {
-  var html = '<h3>📦 Bagong Delivery / Stock In</h3>' +
+  var html = '<h3>📦 New Delivery / Stock In</h3>' +
     '<div class="field-row">' +
-      '<div class="field"><label>Petsa ng dating</label><input id="d_date" type="date" value="' + esc(deliveryHeader.date) + '" oninput="deliveryHeader.date=this.value"></div>' +
-      '<div class="field"><label>Supplier</label><input id="d_supplier" value="' + esc(deliveryHeader.supplier) + '" placeholder="hal. Aling Nena" oninput="deliveryHeader.supplier=this.value"></div>' +
+      '<div class="field"><label>Delivery date</label><input id="d_date" type="date" value="' + esc(deliveryHeader.date) + '" oninput="deliveryHeader.date=this.value"></div>' +
+      '<div class="field"><label>Supplier</label><input id="d_supplier" value="' + esc(deliveryHeader.supplier) + '" placeholder="e.g. Aling Nena" oninput="deliveryHeader.supplier=this.value"></div>' +
     '</div>' +
-    '<div class="field"><label>Checker (sino tumanggap/nag-encode)</label><input id="d_checker" value="' + esc(deliveryHeader.checker) + '" placeholder="Pangalan" oninput="deliveryHeader.checker=this.value"></div>' +
-    '<div class="section-title" style="margin-top:6px">Mga Item na Dumating</div>' +
+    '<div class="field"><label>Checker (who received/encoded it)</label><input id="d_checker" value="' + esc(deliveryHeader.checker) + '" placeholder="Name" oninput="deliveryHeader.checker=this.value"></div>' +
+    '<div class="section-title" style="margin-top:6px">Items Delivered</div>' +
     '<div id="d_lines"></div>' +
-    '<button class="btn-add" onclick="addDeliveryLine()">＋ Magdagdag ng Item</button>' +
-    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveDelivery()">I-save ang Delivery</button></div>';
+    '<button class="btn-add" onclick="addDeliveryLine()">＋ Add Item</button>' +
+    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveDelivery()">Save Delivery</button></div>';
   openModal(html);
   refreshDeliveryLines();
 }
@@ -920,25 +920,25 @@ function addDeliveryLine() {
     function (it) { return isConsumable(it); },
     function (item) {
       deliveryLines.push({ itemId: item.id, qty: 0, cost: item.price || 0 });
-      renderDeliveryModal();   // babalik sa delivery form, buo pa rin ang na-type
+      renderDeliveryModal();   // back to the delivery form, keeping what was already typed
     },
-    'Piliin ang dumating na item'
+    'Select delivered item'
   );
 }
 
 function refreshDeliveryLines() {
   var box = document.getElementById('d_lines');
   if (!box) return;
-  if (!deliveryLines.length) { box.innerHTML = '<div class="hint">Wala pang item. Pindutin ang "＋ Magdagdag ng Item".</div>'; return; }
+  if (!deliveryLines.length) { box.innerHTML = '<div class="hint">No items yet. Tap "＋ Add Item".</div>'; return; }
   box.innerHTML = deliveryLines.map(function (dl, i) {
     var it = getItem(dl.itemId);
     return '<div class="card" style="padding:10px">' +
       '<div class="row"><div class="grow"><b>' + esc(it ? it.name : '?') + '</b></div>' +
       '<button class="btn btn-sm" onclick="deliveryLines.splice(' + i + ',1);refreshDeliveryLines()">✖</button></div>' +
       '<div class="field-row" style="margin-top:8px">' +
-        '<div class="field" style="margin:0"><label>Dami (' + esc(it ? it.unit : '') + ')</label>' +
+        '<div class="field" style="margin:0"><label>Quantity (' + esc(it ? it.unit : '') + ')</label>' +
         '<input type="number" inputmode="decimal" min="0" step="any" value="' + (dl.qty || '') + '" placeholder="0" oninput="deliveryLines[' + i + '].qty=parseFloat(this.value)||0"></div>' +
-        '<div class="field" style="margin:0"><label>Presyo/unit (' + PESO + ')</label>' +
+        '<div class="field" style="margin:0"><label>Price/unit (' + PESO + ')</label>' +
         '<input type="number" inputmode="decimal" min="0" step="any" value="' + dl.cost + '" oninput="deliveryLines[' + i + '].cost=parseFloat(this.value)||0"></div>' +
       '</div></div>';
   }).join('');
@@ -949,16 +949,16 @@ function saveDelivery() {
   var supplier = (deliveryHeader.supplier || '').trim();
   var checker = (deliveryHeader.checker || '').trim();
   var valid = deliveryLines.filter(function (dl) { return dl.qty > 0; });
-  if (!valid.length) { alert('Maglagay ng kahit isang item na may dami.'); return; }
+  if (!valid.length) { alert('Add at least one item with a quantity.'); return; }
   valid.forEach(function (dl) {
     var it = getItem(dl.itemId);
     if (!it) return;
     it.stock = (it.stock || 0) + dl.qty;
-    if (dl.cost > 0) it.price = dl.cost;   // i-update ang latest na presyo
+    if (dl.cost > 0) it.price = dl.cost;   // update latest price
     db.deliveries.push({ id: uid(), date: date, supplier: supplier, checker: checker, itemId: dl.itemId, qty: dl.qty, cost: dl.cost || 0 });
   });
   saveDB(); closeModal(); render();
-  toast('📦 Na-save ang delivery (' + valid.length + ' item)');
+  toast('📦 Delivery saved (' + valid.length + ' item(s))');
 }
 
 /* ============================================================
@@ -968,7 +968,7 @@ function renderLeads() {
   var leads = {};
   var order = [];
   db.events.forEach(function (ev) {
-    var name = (ev.lead || '').trim() || '(walang lead)';
+    var name = (ev.lead || '').trim() || '(no lead)';
     if (!leads[name]) { leads[name] = { events: 0, open: 0, pending: 0, issues: 0, damageValue: 0 }; order.push(name); }
     var L = leads[name];
     L.events++;
@@ -978,20 +978,20 @@ function renderLeads() {
   });
   order.sort();
 
-  var html = '<div class="hint" style="margin:2px 2px 12px">Dito makikita kung sino ang <b>cleared</b> at sino ang may <b>pending na gamit o damages</b> mula sa kanilang mga event.</div>';
-  if (!order.length) return html + '<div class="empty">Wala pang event kaya wala pang lead record.</div>';
+  var html = '<div class="hint" style="margin:2px 2px 12px">This shows who is <b>cleared</b> and who has <b>pending items or damages</b> from their events.</div>';
+  if (!order.length) return html + '<div class="empty">No events yet, so no lead records yet.</div>';
 
   window._leadNames = order;
   order.forEach(function (name, i) {
     var L = leads[name];
     var cleared = L.pending === 0 && L.issues === 0;
     var badge = cleared ? '<span class="badge b-green">✅ Cleared</span>' :
-      (L.pending > 0 ? '<span class="badge b-red">⚠️ ' + L.pending + ' hindi naibabalik</span>' : '') +
-      (L.issues > 0 ? ' <span class="badge b-amber">' + L.issues + ' sira/nawala · ' + money(L.damageValue) + '</span>' : '');
+      (L.pending > 0 ? '<span class="badge b-red">⚠️ ' + L.pending + ' not returned</span>' : '') +
+      (L.issues > 0 ? ' <span class="badge b-amber">' + L.issues + ' damaged/lost · ' + money(L.damageValue) + '</span>' : '');
     html += '<div class="card tappable" onclick="go(\'leadDetail\',window._leadNames[' + i + '])">' +
       '<div class="row"><div class="thumb">👤</div>' +
       '<div class="grow"><div class="item-name">' + esc(name) + '</div>' +
-      '<div class="item-meta">' + L.events + ' event' + (L.events > 1 ? 's' : '') + (L.open ? ' · ' + L.open + ' bukas pa' : '') + '</div>' +
+      '<div class="item-meta">' + L.events + ' event' + (L.events > 1 ? 's' : '') + (L.open ? ' · ' + L.open + ' still open' : '') + '</div>' +
       '<div style="margin-top:4px">' + badge + '</div></div>' +
       '</div></div>';
   });
@@ -999,13 +999,13 @@ function renderLeads() {
 }
 function renderLeadDetail(name) {
   var evs = db.events.filter(function (ev) {
-    return ((ev.lead || '').trim() || '(walang lead)') === name;
+    return ((ev.lead || '').trim() || '(no lead)') === name;
   });
   evs.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
-  var html = '<button class="back-btn" onclick="go(\'leads\')">← Bumalik sa Leads</button>';
+  var html = '<button class="back-btn" onclick="go(\'leads\')">← Back to Leads</button>';
   html += '<div class="card"><div class="row"><div class="thumb">👤</div><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
-    '<div class="item-meta">' + evs.length + ' event record</div></div></div></div>';
+    '<div class="item-meta">' + evs.length + ' event record(s)</div></div></div></div>';
   evs.forEach(function (ev) { html += eventCard(ev); });
   return html;
 }
@@ -1016,16 +1016,16 @@ function renderLeadDetail(name) {
 function openPicker(filterFn, onPick, title) {
   pickerCallback = onPick;
   var items = db.items.filter(filterFn).sort(byName);
-  var html = '<h3>' + esc(title || 'Pumili ng Item') + '</h3>' +
-    '<input class="search" placeholder="🔍 Hanapin…" oninput="filterPicker(this.value)">' +
+  var html = '<h3>' + esc(title || 'Select Item') + '</h3>' +
+    '<input class="search" placeholder="🔍 Search…" oninput="filterPicker(this.value)">' +
     '<div id="pickerList">' + pickerListHTML(items) + '</div>';
   openModal(html);
-  // itago ang filter function para magamit sa search
+  // stash the filter function so it can be used for search
   window._pickerFilter = filterFn;
 }
 
 function pickerListHTML(items) {
-  if (!items.length) return '<div class="empty">Walang tugmang item. Idagdag muna ito sa Database tab.</div>';
+  if (!items.length) return '<div class="empty">No matching items. Add one in the Database tab first.</div>';
   return items.map(function (it) {
     var right = isConsumable(it)
       ? (it.stock || 0) + ' ' + esc(it.unit)
@@ -1103,12 +1103,12 @@ function openMenu() {
   var itemCount = db.items.length, evCount = db.events.length;
   var html = '<h3>Menu</h3>' +
     '<div class="hint" style="margin-bottom:10px">' + itemCount + ' items · ' + evCount + ' events</div>' +
-    (currentUser ? '<div class="hint" style="margin-bottom:10px">Naka-login bilang: <b>' + esc(currentUser.email) + '</b></div>' : '') +
-    '<button class="menu-item" onclick="exportData()">💾 I-export ang backup (JSON)</button>' +
-    '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">📥 Mag-import ng backup</button>' +
-    '<button class="menu-item danger" onclick="resetData()">🗑️ Burahin lahat ng data</button>' +
-    '<button class="menu-item" onclick="doLogout()">🚪 Mag-logout</button>' +
-    '<div class="hint" style="margin-top:12px">💡 Ang data ay naka-save sa cloud, kaya kita ng lahat ng may access.</div>';
+    (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b></div>' : '') +
+    '<button class="menu-item" onclick="exportData()">💾 Export backup (JSON)</button>' +
+    '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">📥 Import backup</button>' +
+    '<button class="menu-item danger" onclick="resetData()">🗑️ Delete all data</button>' +
+    '<button class="menu-item" onclick="doLogout()">🚪 Sign out</button>' +
+    '<div class="hint" style="margin-top:12px">💡 Data is stored in the cloud, so everyone with access can see it.</div>';
   openModal(html);
 }
 
@@ -1121,7 +1121,7 @@ function exportData() {
   a.click();
   document.body.removeChild(a);
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
-  toast('💾 Na-download ang backup');
+  toast('💾 Backup downloaded');
 }
 
 document.getElementById('importInput').addEventListener('change', function () {
@@ -1133,23 +1133,23 @@ document.getElementById('importInput').addEventListener('change', function () {
     try {
       var d = JSON.parse(reader.result);
       if (!d || !d.items || !d.events || !d.deliveries) throw new Error('bad');
-      if (!confirm('Papalitan nito ang KASALUKUYANG data ng laman ng backup (' + d.items.length + ' items, ' + d.events.length + ' events). Ituloy?')) return;
+      if (!confirm('This will replace the CURRENT data with the contents of the backup (' + d.items.length + ' items, ' + d.events.length + ' events). Continue?')) return;
       db = d;
       saveDB(); closeModal(); render();
-      toast('📥 Na-import ang backup');
+      toast('📥 Backup imported');
     } catch (e) {
-      alert('Hindi mabasa ang file. Siguraduhing backup JSON mula sa app na ito.');
+      alert('Could not read the file. Make sure it is a backup JSON from this app.');
     }
   };
   reader.readAsText(file);
 });
 
 function resetData() {
-  if (!confirm('SIGURADO KA BA? Buburahin LAHAT ng items, events, at deliveries. Hindi na ito maibabalik. Mag-export muna ng backup kung kailangan.')) return;
-  if (!confirm('Huling tanong: burahin talaga lahat?')) return;
+  if (!confirm('ARE YOU SURE? This will delete ALL items, events, and deliveries. This cannot be undone. Export a backup first if needed.')) return;
+  if (!confirm('One last check: really delete everything?')) return;
   db = seedDB();
   saveDB(); closeModal(); render();
-  toast('🗑️ Na-reset ang data');
+  toast('🗑️ Data reset');
 }
 
 /* toast */
@@ -1174,12 +1174,12 @@ function startCloudSync() {
         render();
       }
     } else {
-      // walang pa laman ang cloud — ilagay ang kasalukuyang lokal na data
+      // cloud is still empty — push the current local data
       CLOUD_DOC.set(db).catch(function (e) { console.error('Initial cloud push error', e); });
     }
   }, function (err) {
     console.error('Cloud listen error', err);
-    toast('⚠️ Hindi makonekta sa cloud — naka-offline mode.');
+    toast('⚠️ Could not connect to cloud — running offline.');
   });
 }
 
