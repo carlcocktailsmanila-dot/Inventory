@@ -475,7 +475,7 @@ function renderEventDetail(id) {
 
   if (!closed && pend > 0) html += '<div class="notice red">⚠️ May ' + pend + ' item na hindi pa naibabalik.</div>';
   if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">✅ Kumpleto ang naibalik. Pwede nang isara ang event.</div>';
-  if (closed && issues > 0) html += '<div class="notice amber">⚠️ May ' + issues + ' item na nasira o nawala sa event na ito (' + money(eventDamageValue(ev)) + ').</div>';
+ if (closed && issues > 0) html += '<div class="notice amber">⚠️ May ' + issues + ' item na nasira o nawala sa event na ito (' + money(eventDamageValue(ev)) + ').</div>';
 
   // summary tiles
   html += '<div class="tiles">' +
