@@ -29,6 +29,9 @@
 </style>
 </head>
 <body>
+<!-- CHANGED: splash screen — plain background shown while the app is loading;
+     hidden by app.js once ready. Change background:#ffffff to #000000 for black. -->
+<div id="splash" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#ffffff;z-index:9999"></div>
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand" onclick="go('events')" style="cursor:pointer">
