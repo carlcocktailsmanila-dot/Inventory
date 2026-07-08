@@ -97,27 +97,24 @@ function renderLoginScreen() {
   var menuBtn = document.querySelector('.icon-btn');
   if (menuBtn) menuBtn.style.display = 'none';
   var v = document.getElementById('view');
-  var isSignup = authMode === 'signup';
+  /* CHANGED: sign-up and forgot-password removed — the admin creates all accounts
+     directly in Firebase Console (Authentication → Users → Add user) */
   v.innerHTML =
     '<div style="text-align:center;padding:60px 20px">' +
       '<div style="font-size:48px;margin-bottom:12px">📦</div>' +
       '<h2 style="margin-bottom:6px">Cocktails Manila Inventory</h2>' +
-      '<p class="hint">' + (isSignup ? 'Create an account (approved emails only).' : 'Sign in with your account.') + '</p>' +
+      '<p class="hint">Sign in with the account given to you by the admin.</p>' +
       '<div style="max-width:280px;margin:16px auto;text-align:left">' +
         '<div class="field"><label>Email</label><input id="login_email" type="email" placeholder="you@example.com"></div>' +
         '<div class="field"><label>Password</label>' +
           '<div style="position:relative">' +
-            '<input id="login_pass" type="password" placeholder="Password (min 6 characters)" style="padding-right:60px">' +
+            '<input id="login_pass" type="password" placeholder="Password" style="padding-right:60px">' +
             '<button type="button" onclick="togglePasswordView()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#1a7f5a;font-size:13px;cursor:pointer;padding:4px">👁️ Show</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
-    (isSignup
-        ? '<button class="btn btn-primary" onclick="doSignup()">✅ Create Account</button>' +
-          '<div class="hint" style="margin-top:12px">Already have an account? <a href="#" onclick="switchAuthMode(\'signin\');return false;">Sign in</a></div>'
-        : '<button class="btn btn-primary" onclick="doLogin()">🔐 Sign In</button>' +
-          '<div class="hint" style="margin-top:12px">No account yet? <a href="#" onclick="switchAuthMode(\'signup\');return false;">Create one</a></div>' +
-          '<div class="hint" style="margin-top:8px"><a href="#" onclick="doForgotPassword();return false;">Forgot password?</a></div>') +
+    '<button class="btn btn-primary" onclick="doLogin()">🔐 Sign In</button>' +
+    '<div class="hint" style="margin-top:12px">No account or forgot your password? Contact the admin.</div>' +
     '</div>';
 }
 
