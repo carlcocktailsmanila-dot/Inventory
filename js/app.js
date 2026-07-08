@@ -380,7 +380,7 @@ if (dbTab === 'event' || dbTab === 'food') {
     }
   }
 
-  html += '<button class="btn-add" onclick="openItemForm(null,\'' + dbTab + '\')">＋ Add Item to ' + dbTabLabel(dbTab) + '</button>';
+  html += '<button onclick="openItemForm(null,\'' + dbTab + '\')" title="Add Item to ' + dbTabLabel(dbTab) + '" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
   html += '<div id="dbList">' + dbListHTML(dbTabItems(dbTab)) + '</div>';
   return html;
 }
