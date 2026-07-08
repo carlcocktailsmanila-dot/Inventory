@@ -457,18 +457,30 @@ function openItemForm(id, presetTab) {
   photoTemp = it ? it.photo : null;
   var consumable = it ? isConsumable(it) : (presetTab === 'food');
   var presetCat = it ? null : (presetTab === 'toolbox' ? 'toolbox-n' : presetTab || 'event');
+  /* CHANGED: when adding from the Toolbox tab, only show Returnable and Disposable options */
+  var toolboxOnly = (!it && presetTab === 'toolbox');
+  var catOptions;
+  if (toolboxOnly) {
+    catOptions =
+      opt('toolbox-n', '🧰 Returnable (serving)', true) +
+      opt('toolbox-d', '🧰 Disposable (runs out)', false);
+  } else {
+    catOptions =
+      opt('event', '🎪 Event Item (returnable)', it ? it.category === 'event' : presetCat === 'event') +
+      opt('toolbox-n', '🧰 Toolbox — Returnable (serving)', it ? (it.category === 'toolbox' && !it.disposable) : presetCat === 'toolbox-n') +
+      opt('toolbox-d', '🧰 Toolbox — Disposable (runs out)', it ? (it.category === 'toolbox' && it.disposable) : false) +
+      opt('food', '🍲 Food / Storage', it ? it.category === 'food' : presetCat === 'food');
+  }
   var html = '<h3>' + (it ? 'Edit Item' : 'New Item') + '</h3>' +
     '<div class="photo-box" onclick="capturePhoto(function(d){photoTemp=d;refreshFormPhoto()})">' +
       '<div id="formPhoto">' + formPhotoHTML() + '</div>' +
       '<div class="photo-hint">📷 ' + (photoTemp ? 'Change' : 'Take a photo') + '</div>' +
     '</div>' +
     '<div class="field"><label>Item Name</label><input id="f_name" value="' + esc(it ? it.name : '') + '" placeholder="e.g. Chafing Dish"></div>' +
-    '<div class="field"><label>Category/Type (optional)</label><input id="f_material" value="' + esc(it ? (it.material || '') : '') + '" placeholder="e.g. Wood, Metal, Meat, Fruits, Vegetables"></div>' +
-    '<div class="field"><label>Category</label><select id="f_cat" onchange="itemFormToggle()">' +
-      opt('event', '🎪 Event Item (returnable)', it ? it.category === 'event' : presetCat === 'event') +
-      opt('toolbox-n', '🧰 Toolbox — Returnable (serving)', it ? (it.category === 'toolbox' && !it.disposable) : presetCat === 'toolbox-n') +
-      opt('toolbox-d', '🧰 Toolbox — Disposable (runs out)', it ? (it.category === 'toolbox' && it.disposable) : false) +
-      opt('food', '🍲 Food / Storage', it ? it.category === 'food' : presetCat === 'food') +
+    /* CHANGED: hide the material/type text field for toolbox items — it's only used by Event Items and Food */
+    (toolboxOnly ? '' : '<div class="field"><label>Category/Type (optional)</label><input id="f_material" value="' + esc(it ? (it.material || '') : '') + '" placeholder="e.g. Wood, Metal, Meat, Fruits, Vegetables"></div>') +
+    '<div class="field"><label>' + (toolboxOnly ? 'Type' : 'Category') + '</label><select id="f_cat" onchange="itemFormToggle()">' +
+      catOptions +
     '</select></div>' +
     '<div class="field-row">' +
       '<div class="field"><label>Unit</label><input id="f_unit" value="' + esc(it ? it.unit : 'pcs') + '" placeholder="pcs / kg / L"></div>' +
@@ -512,7 +524,9 @@ function saveItemForm(id) {
   var it = id ? getItem(id) : null;
   if (!it) { it = { id: uid(), photo: null, notes: '' }; db.items.push(it); }
   it.name = name;
-  it.material = document.getElementById('f_material').value.trim();
+  /* CHANGED: material field may be hidden (toolbox form), so check it exists first */
+  var matEl = document.getElementById('f_material');
+  it.material = matEl ? matEl.value.trim() : (it.material || '');
   it.category = (cat === 'food') ? 'food' : (cat === 'event') ? 'event' : 'toolbox';
   it.disposable = (cat === 'toolbox-d');
   it.unit = document.getElementById('f_unit').value.trim() || 'pcs';
