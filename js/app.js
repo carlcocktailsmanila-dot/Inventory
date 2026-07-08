@@ -407,8 +407,18 @@ function itemCard(it) {
     right = '<div class="stat-num" style="' + (low ? 'color:var(--red)' : '') + '">' + avail + ' ' + esc(it.unit) + '</div>' +
             '<div class="stat-label">' + (low ? '⚠️ Reorder now!' : 'stock') + '</div>';
   } else {
-    right = '<div class="stat-num">' + avail + '/' + ownedEffective(it) + '</div>' +
-            '<div class="stat-label">' + (out > 0 ? out + ' out' : 'complete') + '</div>';
+    /* CHANGED: show avail vs ORIGINAL owned (e.g. 18/20), and mark Incomplete in red if may damaged/lost */
+    var dl = totalDamagedLost(it.id);
+    var statusLabel;
+    if (out > 0) {
+      statusLabel = out + ' out' + (dl > 0 ? ' · Incomplete' : '');
+    } else if (dl > 0) {
+      statusLabel = 'Incomplete';
+    } else {
+      statusLabel = 'complete';
+    }
+    right = '<div class="stat-num"' + (dl > 0 ? ' style="color:var(--red)"' : '') + '>' + avail + '/' + (it.owned || 0) + '</div>' +
+            '<div class="stat-label"' + (dl > 0 ? ' style="color:var(--red);font-weight:600"' : '') + '>' + statusLabel + '</div>';
   }
   return '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' +
     photoThumb(it) +
@@ -871,11 +881,17 @@ function renderToolbox() {
         '<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="openDeliveryForm(\'' + it.id + '\')">＋ Delivery</button></div>' +
         '</div></div>';
     } else {
+      /* CHANGED: show avail vs ORIGINAL owned + Incomplete status if may damaged/lost */
       var out = pendingOut(it.id);
+      var dl = totalDamagedLost(it.id);
+      var statusText;
+      if (out > 0) statusText = '📤 ' + out + ' currently out (at an event)';
+      else if (dl > 0) statusText = '⚠️ ' + dl + ' damaged/lost — Incomplete';
+      else statusText = '✅ Complete in storage';
       html += '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
         '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
-        '<div class="item-meta">Returnable · ' + (out > 0 ? '📤 ' + out + ' currently out (at an event)' : '✅ Complete in storage') + '</div></div>' +
-        '<div><div class="stat-num">' + availableNow(it) + '/' + ownedEffective(it) + '</div><div class="stat-label">available</div></div>' +
+        '<div class="item-meta">Returnable · ' + statusText + '</div></div>' +
+        '<div><div class="stat-num"' + (dl > 0 ? ' style="color:var(--red)"' : '') + '>' + availableNow(it) + '/' + (it.owned || 0) + '</div><div class="stat-label"' + (dl > 0 ? ' style="color:var(--red);font-weight:600"' : '') + '>' + (dl > 0 ? 'Incomplete' : 'available') + '</div></div>' +
         '</div></div>';
     }
   });
