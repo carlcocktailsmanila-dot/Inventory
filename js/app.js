@@ -35,6 +35,24 @@ function isAdmin() {
   return !!(currentUser && currentUser.email && ADMIN_EMAILS.indexOf(currentUser.email.toLowerCase()) >= 0);
 }
 
+/* CHANGED: map each account email to a display name.
+   Used to auto-fill the "Lead" field with whoever is logged in. */
+var STAFF_NAMES = {
+  'carl.cocktailsmanila@gmail.com': 'Carl',
+  'meanne@gmail.com': 'Meanne'
+  'evelyn@gmail.com': 'Evelyn'
+
+};
+
+function currentUserName() {
+  if (!currentUser || !currentUser.email) return '';
+  var e = currentUser.email.toLowerCase();
+  if (STAFF_NAMES[e]) return STAFF_NAMES[e];
+  /* fallback: use the part of the email before @, capitalized */
+  var n = e.split('@')[0].replace(/[._-]+/g, ' ');
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
+
 var currentUser = null;
 var authMode = 'signin';   // 'signin' or 'signup'
 
@@ -630,7 +648,7 @@ function openEventForm(id) {
       '<div class="field"><label>Venue</label><input id="e_venue" value="' + esc(ev ? ev.venue : '') + '" placeholder="e.g. Tagaytay"></div>' +
     '</div>' +
     '<div class="field-row">' +
-      '<div class="field"><label>Lead (in-charge of the event)</label><input id="e_lead" value="' + esc(ev ? ev.lead : '') + '" placeholder="Name"></div>' +
+      '<div class="field"><label>Lead (in-charge of the event)</label><input id="e_lead" value="' + esc(ev ? ev.lead : currentUserName()) + '" placeholder="Name"></div>' +
       '<div class="field"><label>Checker (encoding)</label><input id="e_checker" value="' + esc(ev ? ev.checker : '') + '" placeholder="Name"></div>' +
     '</div>' +
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveEventForm(' + (ev ? '\'' + ev.id + '\'' : 'null') + ')">Save</button></div>';
