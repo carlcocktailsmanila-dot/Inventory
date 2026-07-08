@@ -464,14 +464,26 @@ function itemCard(it) {
     '</div></div>';
 }
 
+/* CHANGED: item photos now live in their own cloud collection ('photos'),
+   one document per item — this removes the 1MB limit risk on the main data */
+var PHOTOS = {};
+
+function itemPhotoSrc(it) {
+  if (!it) return null;
+  if (it.photo) return it.photo;                 /* legacy: photo still inside main data */
+  if (it.hasPhoto && PHOTOS[it.id]) return PHOTOS[it.id];
+  return null;
+}
+
 function photoThumb(it) {
-  if (it.photo) return '<img class="thumb" src="' + it.photo + '" alt="">';
+  var src = itemPhotoSrc(it);
+  if (src) return '<img class="thumb" src="' + src + '" alt="">';
   return '<div class="thumb">' + catIcon(it) + '</div>';
 }
 
 function openItemForm(id, presetTab) {
   var it = id ? getItem(id) : null;
-  photoTemp = it ? it.photo : null;
+  photoTemp = it ? itemPhotoSrc(it) : null;
   var consumable = it ? isConsumable(it) : (presetTab === 'food');
   var presetCat = it ? null : (presetTab === 'toolbox' ? 'toolbox-n' : presetTab || 'event');
   /* CHANGED: when adding from the Toolbox tab, only show Returnable and Disposable options */
@@ -551,7 +563,23 @@ function saveItemForm(id) {
   it.owned = Math.round(num(document.getElementById('f_owned').value));
   it.stock = num(document.getElementById('f_stock').value);
   it.reorderPoint = num(document.getElementById('f_reorder').value);
-  it.photo = photoTemp;
+  /* CHANGED: photos are saved in their own cloud collection, not the main data doc */
+  if (photoTemp) {
+    if (PHOTOS[it.id] !== photoTemp) {
+      PHOTOS[it.id] = photoTemp;
+      if (fsDB) fsDB.collection('photos').doc(it.id).set({ data: photoTemp }).catch(function (e) {
+        console.error('Photo save error', e);
+        toast('⚠️ Photo not synced — check internet.');
+      });
+    }
+    it.hasPhoto = true;
+    it.photo = null;
+  } else {
+    if (it.hasPhoto && fsDB) fsDB.collection('photos').doc(it.id).delete().catch(function () {});
+    delete PHOTOS[it.id];
+    it.hasPhoto = false;
+    it.photo = null;
+  }
   saveDB(); closeModal(); render();
   toast('✅ Saved: ' + name);
 }
@@ -568,6 +596,9 @@ function deleteItem(id) {
     : 'Delete "' + it.name + '"?';
   if (!confirm(msg)) return;
   db.items = db.items.filter(function (x) { return x.id !== id; });
+  /* CHANGED: also delete the item's photo from the photos collection */
+  if (fsDB) fsDB.collection('photos').doc(id).delete().catch(function () {});
+  delete PHOTOS[id];
   saveDB(); closeModal(); render();
   toast('🗑️ Deleted: ' + it.name);
 }
@@ -1356,7 +1387,10 @@ function doChangePassword() {
 }
 
 function exportData() {
-  var blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  /* CHANGED: include photos in the backup file */
+  var payload = JSON.parse(JSON.stringify(db));
+  payload.photosBackup = PHOTOS;
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'inventory-backup-' + today() + '.json';
@@ -1377,6 +1411,14 @@ document.getElementById('importInput').addEventListener('change', function () {
       var d = JSON.parse(reader.result);
       if (!d || !d.items || !d.events || !d.deliveries) throw new Error('bad');
       if (!confirm('This will replace the CURRENT data with the contents of the backup (' + d.items.length + ' items, ' + d.events.length + ' events). Continue?')) return;
+      /* CHANGED: restore photos too, if the backup contains them */
+      if (d.photosBackup) {
+        Object.keys(d.photosBackup).forEach(function (pid) {
+          PHOTOS[pid] = d.photosBackup[pid];
+          if (fsDB) fsDB.collection('photos').doc(pid).set({ data: d.photosBackup[pid] }).catch(function () {});
+        });
+        delete d.photosBackup;
+      }
       db = d;
       saveDB(); closeModal(); render();
       toast('📥 Backup imported');
@@ -1411,6 +1453,25 @@ function hideSplash() {
   if (s) s.style.display = 'none';
 }
 
+/* CHANGED: one-time migration — moves photos that are still embedded in the
+   main data over to the photos collection, then clears them from the main doc */
+var _photosMigrated = false;
+function migrateOldPhotos() {
+  if (_photosMigrated || !fsDB) return;
+  _photosMigrated = true;
+  var changed = false;
+  db.items.forEach(function (it) {
+    if (it.photo) {
+      PHOTOS[it.id] = it.photo;
+      fsDB.collection('photos').doc(it.id).set({ data: it.photo }).catch(function () {});
+      it.photo = null;
+      it.hasPhoto = true;
+      changed = true;
+    }
+  });
+  if (changed) { saveDB(); render(); toast('📷 Photos moved to safer storage'); }
+}
+
 function startCloudSync() {
   if (!CLOUD_DOC) return;
   CLOUD_DOC.onSnapshot(function (snap) {
@@ -1420,6 +1481,7 @@ function startCloudSync() {
         db = remote;
         try { localStorage.setItem(LS_KEY, JSON.stringify(db)); } catch (e) {}
         render();
+        migrateOldPhotos();
       }
     } else {
       CLOUD_DOC.set(db).catch(function (e) { console.error('Initial cloud push error', e); });
@@ -1428,6 +1490,15 @@ function startCloudSync() {
     console.error('Cloud listen error', err);
     toast('⚠️ Could not connect to cloud — running offline.');
   });
+  /* CHANGED: live-sync item photos from their own collection */
+  fsDB.collection('photos').onSnapshot(function (snap) {
+    var changed = false;
+    snap.docChanges().forEach(function (ch) {
+      if (ch.type === 'removed') { delete PHOTOS[ch.doc.id]; changed = true; }
+      else { PHOTOS[ch.doc.id] = (ch.doc.data() || {}).data; changed = true; }
+    });
+    if (changed) render();
+  }, function (err) { console.error('Photo sync error', err); });
 }
 
 if (fbAuth) {
