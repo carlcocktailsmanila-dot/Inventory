@@ -1405,6 +1405,12 @@ function toast(msg) {
 }
 
 /* ---------- boot ---------- */
+/* CHANGED: hide the splash screen once the app knows what to show */
+function hideSplash() {
+  var s = document.getElementById('splash');
+  if (s) s.style.display = 'none';
+}
+
 function startCloudSync() {
   if (!CLOUD_DOC) return;
   CLOUD_DOC.onSnapshot(function (snap) {
@@ -1434,8 +1440,10 @@ if (fbAuth) {
       currentUser = null;
       renderLoginScreen();
     }
+    hideSplash();
   });
 } else {
   render();
   startCloudSync();
+  hideSplash();
 }
