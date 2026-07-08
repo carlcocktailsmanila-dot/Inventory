@@ -1447,3 +1447,61 @@ if (fbAuth) {
   startCloudSync();
   hideSplash();
 }
+
+/* ============================================================
+   CHANGED: PULL-TO-REFRESH (mobile)
+   Pull down from the very top of the page to reload the app.
+   Does not trigger while a modal/form is open.
+   ============================================================ */
+(function () {
+  var startY = 0, pulling = false, dist = 0;
+  var TRIGGER = 140; /* how far (px) to pull before it refreshes */
+
+  var ind = document.createElement('div');
+  ind.style.cssText =
+    'position:fixed;top:-56px;left:50%;margin-left:-22px;width:44px;height:44px;' +
+    'border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.25);' +
+    'display:flex;align-items:center;justify-content:center;font-size:22px;color:#1a7f5a;' +
+    'z-index:9998;transition:top 0.2s;pointer-events:none';
+  ind.textContent = '↻';
+  document.body.appendChild(ind);
+
+  function modalOpen() {
+    var m = document.getElementById('modalOverlay');
+    return m && !m.classList.contains('hidden');
+  }
+
+  document.addEventListener('touchstart', function (e) {
+    if (window.scrollY <= 0 && !modalOpen()) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+      dist = 0;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function (e) {
+    if (!pulling) return;
+    dist = e.touches[0].clientY - startY;
+    if (dist > 0 && window.scrollY <= 0) {
+      var t = Math.min(dist / 2, 70);
+      ind.style.top = (t - 56) + 'px';
+      ind.style.transform = 'rotate(' + (dist * 1.5) + 'deg)';
+    } else {
+      ind.style.top = '-56px';
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', function () {
+    if (!pulling) return;
+    pulling = false;
+    if (dist >= TRIGGER && window.scrollY <= 0) {
+      ind.style.top = '14px';
+      ind.textContent = '⟳';
+      toast('🔄 Refreshing…');
+      setTimeout(function () { location.reload(); }, 350);
+    } else {
+      ind.style.top = '-56px';
+    }
+    dist = 0;
+  });
+})();
