@@ -23,6 +23,16 @@ var ALLOWED_EMAILS = [
   'carl.cocktailsmanila@gmail.com'
 ];
 
+/* CHANGED: role system — emails listed here get FULL ACCESS (admin).
+   Everyone else who signs in is Event Staff (Events tab only). */
+var ADMIN_EMAILS = [
+  'carl.cocktailsmanila@gmail.com'
+];
+
+function isAdmin() {
+  return !!(currentUser && currentUser.email && ADMIN_EMAILS.indexOf(currentUser.email.toLowerCase()) >= 0);
+}
+
 var currentUser = null;
 var authMode = 'signin';   // 'signin' or 'signup'
 
@@ -67,6 +77,8 @@ function doSignup() {
   var email = document.getElementById('login_email').value.trim();
   var pass = document.getElementById('login_pass').value;
   if (!email || !pass) { alert('Enter your email and password.'); return; }
+  /* CHANGED: actually enforce the approved-emails list on signup */
+  if (!isAllowed(email)) { alert('This email is not approved to create an account. Ask the admin to add it first.'); return; }
   if (pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
   fbAuth.createUserWithEmailAndPassword(email, pass).catch(function (err) {
     console.error('Signup error', err);
@@ -304,11 +316,18 @@ function render() {
   if (nav) nav.style.display = '';
   var menuBtn = document.querySelector('.icon-btn');
   if (menuBtn) menuBtn.style.display = '';
+  /* CHANGED: role-based access — staff (non-admin) can only use the Events tab */
+  var admin = isAdmin();
+  if (!admin && route.tab !== 'events' && route.tab !== 'eventDetail') {
+    route.tab = 'events'; route.eventId = null; route.lead = null;
+  }
   var navTab = route.tab;
   if (navTab === 'eventDetail') navTab = 'events';
   if (navTab === 'leadDetail') navTab = 'leads';
   document.querySelectorAll('.bottomnav button').forEach(function (b) {
-    b.classList.toggle('active', b.getAttribute('data-tab') === navTab);
+    var t = b.getAttribute('data-tab');
+    b.style.display = (admin || t === 'events') ? '' : 'none';
+    b.classList.toggle('active', t === navTab);
   });
   var v = document.getElementById('view');
   if (route.tab === 'db') v.innerHTML = renderDatabase();
@@ -673,11 +692,11 @@ function renderEventDetail(id) {
 
   if (!closed) {
     html += '<div class="btn-row" style="margin-top:16px">' +
-      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' +
+      (isAdmin() ? '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' : '') +
       '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">🔒 Close Event</button>' +
     '</div>';
     html += '<div class="hint" style="text-align:center;margin-top:6px">Close this once the event is done and all items have been accounted for.</div>';
-  } else {
+  } else if (isAdmin()) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">🗑️ Delete This Event</button>' +
     '</div>';
@@ -1218,7 +1237,7 @@ document.getElementById('photoInput').addEventListener('change', function () {
 function openMenu() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var html = '<h3>Menu</h3>' +
-    (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b></div>' : '') +
+    (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b> · ' + (isAdmin() ? '👑 Admin' : '🎪 Event Staff') + '</div>' : '') +
     '<button class="menu-item" onclick="openChangePassword()">🔑 Change Password</button>' +
     '<button class="menu-item" onclick="doLogout()">🚪 Sign out</button>';
   openModal(html);
@@ -1294,6 +1313,7 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function () { t.classList.add('hidden'); }, 2600);
 }
+
 /* ---------- boot ---------- */
 function startCloudSync() {
   if (!CLOUD_DOC) return;
