@@ -1256,6 +1256,11 @@ function openMenu() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var html = '<h3>Menu</h3>' +
     (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b> · ' + (isAdmin() ? '👑 Admin' : '🎪 Event Staff') + '</div>' : '') +
+    /* CHANGED: admin-only backup tools */
+    (isAdmin()
+      ? '<button class="menu-item" onclick="exportData()">💾 Export Backup (download data)</button>' +
+        '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">📥 Import Backup (restore data)</button>'
+      : '') +
     '<button class="menu-item" onclick="openChangePassword()">🔑 Change Password</button>' +
     '<button class="menu-item" onclick="doLogout()">🚪 Sign out</button>';
   openModal(html);
