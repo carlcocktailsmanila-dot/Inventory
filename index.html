@@ -2,13 +2,31 @@
 <html lang="fil">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- FIX #1: dinagdagan yung viewport para hindi mag-zoom/gumalaw pag nag-tap o nag-scroll -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1a7f5a">
 <title>Inventory App</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="css/style.css">
+<!-- FIX #2: mobile scroll stability — pinipigilan yung left-right wiggle at yung pag-bounce ng buong screen -->
+<style>
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    overscroll-behavior-y: none;
+  }
+  body {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-y;
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+</style>
 </head>
 <body>
 <header class="topbar">
@@ -60,4 +78,4 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 </script>
 </body>
-</html> 
+</html>
