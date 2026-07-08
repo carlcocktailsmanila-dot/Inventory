@@ -20,13 +20,15 @@ try { fbAuth = firebase.auth(); } catch (e) { console.error('Auth init error', e
 
 // REPLACE this with the real email of each staff member who is allowed to sign up
 var ALLOWED_EMAILS = [
-  'carl.cocktailsmanila@gmail.com'
+  'carl.cocktailsmanila@gmail.com',
+  'meanne@gmail.com'
 ];
 
 /* CHANGED: role system — emails listed here get FULL ACCESS (admin).
    Everyone else who signs in is Event Staff (Events tab only). */
 var ADMIN_EMAILS = [
-  'carl.cocktailsmanila@gmail.com'
+  'carl.cocktailsmanila@gmail.com',
+  'meanne@gmail.com'
 ];
 
 function isAdmin() {
