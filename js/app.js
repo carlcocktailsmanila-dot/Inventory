@@ -39,8 +39,7 @@ function isAdmin() {
    Used to auto-fill the "Lead" field with whoever is logged in. */
 var STAFF_NAMES = {
   'carl.cocktailsmanila@gmail.com': 'Carl',
-  'meanne@gmail.com': 'Meanne',
-  'evelyn.cocktailsmanila@gmail.com': 'Evelyn'
+  'meanne@gmail.com': 'Meanne'
 };
 
 function currentUserName() {
@@ -704,7 +703,8 @@ function renderEventDetail(id) {
       '<div class="row">' + (it ? photoThumb(it) : '<div class="thumb">❓</div>') +
       '<div class="grow"><div class="item-name">' + esc(name2) + '</div>' +
       (l.notes ? '<div class="item-meta">📝 ' + esc(l.notes) + '</div>' : '') + '</div>' +
-      (!closed ? '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Return</button>' : '') +
+      (!closed ? '<button class="btn btn-sm" style="margin-right:6px" onclick="openEditRelease(\'' + ev.id + '\',' + idx + ')" title="Edit released quantity">✏️</button>' +
+                 '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Return</button>' : '') +
       '</div>' +
       '<div class="line-grid">' +
         '<div><div class="lg-num">' + l.out + '</div><div class="lg-label">OUT</div></div>' +
@@ -824,6 +824,44 @@ function doReturn(evId, lineIdx) {
   if (notes) l.notes = (l.notes ? l.notes + '; ' : '') + notes;
   saveDB(); closeModal(); render();
   toast('📥 Returned: ' + ok + (dmg ? ' · Damaged: ' + dmg : '') + ' — ' + (it ? it.name : ''));
+}
+
+/* CHANGED: edit a released line — correct a wrongly-encoded OUT quantity,
+   or remove the line entirely if nothing has been returned/damaged yet */
+function openEditRelease(evId, lineIdx) {
+  var ev = getEvent(evId); var l = ev.lines[lineIdx];
+  var it = getItem(l.itemId);
+  var minOut = (l.returned || 0) + (l.damaged || 0) + (l.lost || 0);
+  var html = '<h3>Edit Release: ' + esc(it ? it.name : '') + '</h3>' +
+    '<div class="hint" style="margin-bottom:10px">Recorded OUT: <b>' + l.out + '</b> · Returned: <b>' + (l.returned || 0) + '</b> · Damaged/Lost: <b>' + ((l.damaged || 0) + (l.lost || 0)) + '</b><br>If the released quantity was encoded wrong, correct it here.</div>' +
+    '<div class="field"><label>Correct quantity released (OUT)</label><input id="er_out" type="number" inputmode="numeric" min="' + minOut + '" value="' + l.out + '"></div>' +
+    (minOut > 0 ? '<div class="hint" style="margin-bottom:10px">⚠️ Cannot go below ' + minOut + ' — that many were already returned or marked damaged/lost.</div>' : '') +
+    '<div class="btn-row">' +
+      (minOut === 0 ? '<button class="btn btn-danger" onclick="saveEditRelease(\'' + evId + '\',' + lineIdx + ',true)">Remove</button>' : '') +
+      '<button class="btn btn-primary" onclick="saveEditRelease(\'' + evId + '\',' + lineIdx + ',false)">Save</button>' +
+    '</div>';
+  openModal(html);
+}
+
+function saveEditRelease(evId, lineIdx, remove) {
+  var ev = getEvent(evId); var l = ev.lines[lineIdx];
+  var it = getItem(l.itemId);
+  var minOut = (l.returned || 0) + (l.damaged || 0) + (l.lost || 0);
+  if (remove) {
+    if (minOut > 0) { alert('Cannot remove: some items were already returned or marked damaged/lost.'); return; }
+    if (!confirm('Remove ' + (it ? it.name : 'this item') + ' from this event\'s released items?')) return;
+    ev.lines.splice(lineIdx, 1);
+  } else {
+    var newOut = Math.round(num(document.getElementById('er_out').value));
+    if (newOut < minOut) { alert('OUT cannot be less than ' + minOut + ' — that many were already returned or marked damaged/lost.'); return; }
+    if (newOut === 0) {
+      ev.lines.splice(lineIdx, 1);
+    } else {
+      l.out = newOut;
+    }
+  }
+  saveDB(); closeModal(); render();
+  toast('✅ Release updated' + (it ? ': ' + it.name : ''));
 }
 
 function openUsagePicker(evId, category) {
