@@ -529,7 +529,7 @@ function renderEvents() {
   closed.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
   var html = '<input class="search" placeholder="🔍 Search by event, lead, or venue…" value="' + esc(eventSearch) + '" oninput="eventSearch=this.value;render()">';
-  html += '<button class="btn-add" onclick="openEventForm()">＋ New Event</button>';
+  html += '<button onclick="openEventForm()" title="New Event" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
 
   html += '<div class="section-title">Open Events (' + open.length + ')</div>';
   html += open.length ? open.map(eventCard).join('') : '<div class="empty">No open events.</div>';
@@ -911,7 +911,7 @@ function renderFood() {
     '</div>';
   if (lowCount) html += '<div class="notice red">⚠️ ' + lowCount + ' food item(s) low on stock.</div>';
 
-  html += '<button class="btn-add" onclick="openDeliveryForm()">＋ New Delivery (Weekly Stock)</button>';
+  html += '<button onclick="openDeliveryForm()" title="New Delivery (Weekly Stock)" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
 
   html += '<div class="section-title">🍲 Storage Levels</div>';
   if (!foods.length) html += '<div class="empty">No food items yet. Add one in the Database tab.</div>';
