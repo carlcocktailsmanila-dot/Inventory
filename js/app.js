@@ -233,6 +233,19 @@ function fmtDate(iso) {
   var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return months[(+p[1]) - 1] + ' ' + (+p[2]) + ', ' + p[0];
 }
+
+/* CHANGED: activity log — records who did what, and when.
+   Kept to the latest 300 actions so the data stays small. */
+function nowStamp() {
+  var d = new Date();
+  return today() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function logAction(text) {
+  if (!db.logs) db.logs = [];
+  db.logs.unshift({ id: uid(), at: nowStamp(), by: currentUserName() || 'Unknown', text: text });
+  if (db.logs.length > 300) db.logs.length = 300;
+}
 function getItem(id) {
   for (var i = 0; i < db.items.length; i++) if (db.items[i].id === id) return db.items[i];
   return null;
@@ -585,6 +598,7 @@ function saveItemForm(id) {
     it.hasPhoto = false;
     it.photo = null;
   }
+  logAction((id ? '✏️ Edited item: ' : '➕ Added item: ') + name);
   saveDB(); closeModal(); render();
   toast('✅ Saved: ' + name);
 }
@@ -604,6 +618,7 @@ function deleteItem(id) {
   /* CHANGED: also delete the item's photo from the photos collection */
   if (fsDB) fsDB.collection('photos').doc(id).delete().catch(function () {});
   delete PHOTOS[id];
+  logAction('🗑️ Deleted item: ' + it.name);
   saveDB(); closeModal(); render();
   toast('🗑️ Deleted: ' + it.name);
 }
@@ -632,11 +647,23 @@ function eventListHTML() {
   };
   var open = db.events.filter(function (e) { return e.status === 'open' && matches(e); });
   var closed = db.events.filter(function (e) { return e.status === 'closed' && matches(e); });
-  open.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
   closed.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
-  var html = '<div class="section-title">Open Events (' + open.length + ')</div>';
-  html += open.length ? open.map(eventCard).join('') : '<div class="empty">No open events.</div>';
+  /* CHANGED: open events are now split into "Today & Upcoming" (soonest first)
+     and "Still Open — past dates" (events that should probably be closed) */
+  var td = today();
+  var upcoming = open.filter(function (e) { return (e.date || '') >= td; })
+    .sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
+  var pastOpen = open.filter(function (e) { return (e.date || '') < td; })
+    .sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+  var html = '<div class="section-title">📅 Today & Upcoming (' + upcoming.length + ')</div>';
+  html += upcoming.length ? upcoming.map(eventCard).join('') : '<div class="empty">No upcoming events.</div>';
+
+  if (pastOpen.length) {
+    html += '<div class="section-title">⏳ Still Open — past dates (' + pastOpen.length + ')</div>';
+    html += pastOpen.map(eventCard).join('');
+  }
 
   if (closed.length) {
     html += '<div class="section-title">Completed (' + closed.length + ')</div>';
@@ -663,6 +690,8 @@ function eventCard(ev) {
     badge = pend > 0 ? '<span class="badge b-red">' + pend + ' not yet returned</span>' : '<span class="badge b-green">All returned</span>';
   }
   var val = eventValueOut(ev) + eventUsageCost(ev);
+  /* CHANGED: highlight events happening today */
+  if (ev.status === 'open' && ev.date === today()) badge = '<span class="badge b-green">📍 TODAY</span> ' + badge;
   return '<div class="card tappable" onclick="go(\'eventDetail\',\'' + ev.id + '\')">' +
     '<div class="row"><div class="grow">' +
       '<div class="item-name">' + esc(ev.name) + '</div>' +
@@ -701,6 +730,7 @@ function saveEventForm(id) {
   ev.venue = document.getElementById('e_venue').value.trim();
   ev.lead = document.getElementById('e_lead').value.trim();
   ev.checker = document.getElementById('e_checker').value.trim();
+  logAction((isNew ? '➕ Created event: ' : '✏️ Edited event: ') + name);
   saveDB(); closeModal();
   if (isNew) go('eventDetail', ev.id); else render();
   toast('✅ Event saved');
@@ -828,6 +858,7 @@ function doRelease(evId, itemId) {
   } else {
     ev.lines.push({ itemId: itemId, out: qty, returned: 0, damaged: 0, lost: 0, notes: notes });
   }
+  logAction('📤 Released ' + qty + ' ' + it.name + ' — ' + ev.name);
   saveDB(); closeModal(); render();
   toast('📤 Released: ' + qty + ' ' + it.name);
 }
@@ -858,6 +889,7 @@ function doReturn(evId, lineIdx) {
   l.damaged = (l.damaged || 0) + dmg;
   var notes = document.getElementById('rt_notes').value.trim();
   if (notes) l.notes = (l.notes ? l.notes + '; ' : '') + notes;
+  logAction('📥 Returned ' + ok + (dmg ? ' + ' + dmg + ' damaged' : '') + ' ' + (it ? it.name : '?') + ' — ' + ev.name);
   saveDB(); closeModal(); render();
   toast('📥 Returned: ' + ok + (dmg ? ' · Damaged: ' + dmg : '') + ' — ' + (it ? it.name : ''));
 }
@@ -896,6 +928,7 @@ function saveEditRelease(evId, lineIdx, remove) {
       l.out = newOut;
     }
   }
+  logAction('✏️ ' + (remove ? 'Removed released item ' : 'Edited release of ') + (it ? it.name : '?') + ' — ' + ev.name);
   saveDB(); closeModal(); render();
   toast('✅ Release updated' + (it ? ': ' + it.name : ''));
 }
@@ -928,6 +961,7 @@ function doUsage(evId, itemId) {
   if (u) { u.qty += qty; }
   else { ev.usage.push({ itemId: itemId, qty: qty, cost: it.price || 0 }); }
   it.stock = Math.max(0, (it.stock || 0) - qty);
+  logAction('✅ Used ' + qty + ' ' + it.unit + ' ' + it.name + ' — ' + ev.name);
   saveDB(); closeModal(); render();
   var low = it.reorderPoint > 0 && it.stock <= it.reorderPoint;
   toast('✅ Used: ' + qty + ' ' + it.unit + ' ' + it.name + (low ? ' — ⚠️ stock running low!' : ''));
@@ -955,6 +989,7 @@ function saveUsageEdit(evId, usageIdx, remove) {
   if (it) it.stock = Math.max(0, (it.stock || 0) + diff);
   if (newQty === 0) ev.usage.splice(usageIdx, 1);
   else u.qty = newQty;
+  logAction('✏️ Edited usage of ' + (it ? it.name : '?') + ' — ' + ev.name);
   saveDB(); closeModal(); render();
   toast('✅ Updated');
 }
@@ -973,6 +1008,7 @@ function closeEvent(evId) {
   }
   ev.status = 'closed';
   ev.closedAt = today();
+  logAction('🔒 Closed event: ' + ev.name + (pend > 0 ? ' (' + pend + ' item(s) marked LOST)' : ''));
   saveDB(); render();
   toast('🔒 Event closed');
 }
@@ -985,6 +1021,7 @@ function deleteEvent(evId) {
     if (it) it.stock = (it.stock || 0) + u.qty;
   });
   db.events = db.events.filter(function (e) { return e.id !== evId; });
+  logAction('🗑️ Deleted event: ' + ev.name);
   saveDB(); go('events');
   toast('🗑️ Event deleted');
 }
@@ -1183,6 +1220,7 @@ function saveDelivery() {
     if (dl.cost > 0) it.price = dl.cost;
     db.deliveries.push({ id: uid(), date: date, supplier: supplier, checker: checker, itemId: dl.itemId, qty: dl.qty, cost: dl.cost || 0 });
   });
+  logAction('📦 Delivery received (' + valid.length + ' item(s))' + (supplier ? ' from ' + supplier : ''));
   saveDB(); closeModal(); render();
   toast('📦 Delivery saved (' + valid.length + ' item(s))');
 }
@@ -1361,11 +1399,28 @@ function openMenu() {
     (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b> · ' + (isAdmin() ? '👑 Admin' : '🎪 Event Staff') + '</div>' : '') +
     /* CHANGED: admin-only backup tools */
     (isAdmin()
-      ? '<button class="menu-item" onclick="exportData()">💾 Export Backup (download data)</button>' +
+      ? '<button class="menu-item" onclick="openActivityLog()">📜 Activity Log</button>' +
+        '<button class="menu-item" onclick="exportData()">💾 Export Backup (download data)</button>' +
         '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">📥 Import Backup (restore data)</button>'
       : '') +
     '<button class="menu-item" onclick="openChangePassword()">🔑 Change Password</button>' +
     '<button class="menu-item" onclick="doLogout()">🚪 Sign out</button>';
+  openModal(html);
+}
+
+/* CHANGED: activity log viewer — admin only, shows the latest 100 actions */
+function openActivityLog() {
+  var logs = db.logs || [];
+  var html = '<h3>📜 Activity Log</h3>' +
+    '<div class="hint" style="margin-bottom:10px">Who did what, and when. Latest ' + Math.min(logs.length, 100) + ' of ' + logs.length + ' recorded action(s).</div>' +
+    (!logs.length
+      ? '<div class="empty">No activity recorded yet. Actions will appear here from now on.</div>'
+      : logs.slice(0, 100).map(function (L) {
+          return '<div class="card" style="padding:10px">' +
+            '<div class="item-meta">🕒 ' + esc(L.at) + ' · 👤 <b>' + esc(L.by) + '</b></div>' +
+            '<div style="margin-top:2px">' + esc(L.text) + '</div>' +
+            '</div>';
+        }).join(''));
   openModal(html);
 }
 function openChangePassword() {
@@ -1425,6 +1480,7 @@ document.getElementById('importInput').addEventListener('change', function () {
         delete d.photosBackup;
       }
       db = d;
+      logAction('📥 Imported backup file');
       saveDB(); closeModal(); render();
       toast('📥 Backup imported');
     } catch (e) {
