@@ -40,16 +40,16 @@ function isAdmin() {
 var STAFF_NAMES = {
   'carl.cocktailsmanila@gmail.com': 'Carl',
   'meanne@gmail.com': 'Meanne',
-  'evelyn@gmail.com': 'Evelyn'
-
+  'evelyn.cocktailsmanila@gmail.com': 'Evelyn'
 };
 
 function currentUserName() {
   if (!currentUser || !currentUser.email) return '';
   var e = currentUser.email.toLowerCase();
   if (STAFF_NAMES[e]) return STAFF_NAMES[e];
-  /* fallback: use the part of the email before @, capitalized */
-  var n = e.split('@')[0].replace(/[._-]+/g, ' ');
+  /* fallback: use only the FIRST word of the email (before any . _ - or @),
+     e.g. evelyn.cocktailsmanila@gmail.com → "Evelyn" */
+  var n = e.split('@')[0].split(/[._-]/)[0];
   return n.charAt(0).toUpperCase() + n.slice(1);
 }
 
