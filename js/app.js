@@ -1,31 +1,268 @@
+
+Claude is responding
+dito na ako amg chat mapupuno na kasi yung pinagusapan natin sa isang chat
+
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="
+#1a7f5a">
+<title>Inventory App</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand" onclick="go('events')" style="cursor:pointer">
+      <span class="brand-icon">📦</span>
+      <div>
+        <div class="brand-title">Inventory</div>
+        <div class="brand-sub" id="topbarSub">Event · Toolbox · Food</div>
+      </div>
+    </div>
+    <button class="icon-btn" onclick="openMenu()" title="Menu">⋮</button>
+  </div>
+</header>
+<main id="view"></main>
+<nav class="bottomnav">
+  <button data-tab="db"      onclick="go('db')"><span>🗄️</span>Database</button>
+  <button data-tab="events"  onclick="go('events')"><span>🎪</span>Events</button>
+  <button data-tab="toolbox" onclick="go('toolbox')"><span>🧰</span>Toolbox</button>
+  <button data-tab="food"    onclick="go('food')"><span>🍲</span>Food</button>
+  <button data-tab="leads"   onclick="go('leads')"><span>👤</span>Leads</button>
+</nav>
+<!-- generic modal -->
+<div id="modalOverlay" class="modal-overlay hidden" onclick="overlayClick(event)">
+  <div id="modal" class="modal"></div>
+</div>
+<!-- hidden inputs -->
+<input type="file" id="photoInput" accept="image/*" class="hidden-input">
+<input type="file" id="importInput" accept="application/json,.json" class="hidden-input">
+<div id="toast" class="toast hidden"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAQ-a7gAcDJHqio3-umcu5TpN5UK_E9w2o",
+    authDomain: "cocktails-manila-inventory.firebaseapp.com",
+    projectId: "cocktails-manila-inventory",
+    storageBucket: "cocktails-manila-inventory.firebasestorage.app",
+    messagingSenderId: "767327100367",
+    appId: "1:767327100367:web:e6932cf67d8350a93946ba"
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
+<script src="js/app.js"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+</script>
+</body>
+</html>
+
+Show more
+
+Identified code issues and implemented two targeted fixes
+Identified code issues and implemented two targeted fixes
+Ayan na, Meanne! Ito yung updated index.html — palitan mo lang yung luma sa GitHub repo mo nito.
+
+Dalawa lang yung binago ko (may <!-- FIX --> comments para makita mo):
+
+Fix #1 — Viewport meta. Dinagdagan ko ng maximum-scale=1 at user-scalable=no para hindi na aksidenteng nag-zo-zoom o gumagalaw yung screen pag nag-tap o nag-double-tap ka habang gumagamit.
+
+Fix #2 — Bagong <style> block sa head. Ito yung pumipigil sa dalawang klaseng "galaw": yung overflow-x: hidden ang pumipigil sa pag-usog pakaliwa-pakanan, tapos yung overscroll-behavior-y: none ang pumipigil sa pag-bounce/paghila ng buong page pag umabot ka sa taas o baba ng scroll. Ginawa ko ring sticky yung topbar para nakadikit na siya sa taas habang nag-i-scroll ka sa listahan.
+
+Pag na-upload mo na sa GitHub Pages, hintayin mo lang mga 1-2 minutes bago mag-refresh sa phone (minsan may delay yung GitHub Pages sa update). Kung naka-install mo siya as app sa home screen, i-close at buksan ulit para makuha yung bagong version.
+
+Kung may konting galaw pa rin after nito, malamang nasa css/style.css na yung culprit — paste mo na lang din yun dito at hahanapin ko kung anong element yung sumosobra sa lapad. 😊
+
+
+Index
+Code · HTML 
+pwede makuha ang code nito? edit mo nalang yung code na ginamit ko
+
+
+Determined na magbigay ng editable code para sa user
+Determined na magbigay ng editable code para sa user
+Oo naman! Ito yung buong code — copy mo lang lahat at i-paste sa index.html mo sa GitHub (palitan yung buong laman):
+
+html
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+<meta charset="UTF-8">
+<!-- FIX #1: dinagdagan yung viewport para hindi mag-zoom/gumalaw pag nag-tap o nag-scroll -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a7f5a">
+<title>Inventory App</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="css/style.css">
+<!-- FIX #2: mobile scroll stability — pinipigilan yung left-right wiggle at yung pag-bounce ng buong screen -->
+<style>
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    overscroll-behavior-y: none;
+  }
+  body {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-y;
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand" onclick="go('events')" style="cursor:pointer">
+      <span class="brand-icon">📦</span>
+      <div>
+        <div class="brand-title">Inventory</div>
+        <div class="brand-sub" id="topbarSub">Event · Toolbox · Food</div>
+      </div>
+    </div>
+    <button class="icon-btn" onclick="openMenu()" title="Menu">⋮</button>
+  </div>
+</header>
+<main id="view"></main>
+<nav class="bottomnav">
+  <button data-tab="db"      onclick="go('db')"><span>🗄️</span>Database</button>
+  <button data-tab="events"  onclick="go('events')"><span>🎪</span>Events</button>
+  <button data-tab="toolbox" onclick="go('toolbox')"><span>🧰</span>Toolbox</button>
+  <button data-tab="food"    onclick="go('food')"><span>🍲</span>Food</button>
+  <button data-tab="leads"   onclick="go('leads')"><span>👤</span>Leads</button>
+</nav>
+<!-- generic modal -->
+<div id="modalOverlay" class="modal-overlay hidden" onclick="overlayClick(event)">
+  <div id="modal" class="modal"></div>
+</div>
+<!-- hidden inputs -->
+<input type="file" id="photoInput" accept="image/*" class="hidden-input">
+<input type="file" id="importInput" accept="application/json,.json" class="hidden-input">
+<div id="toast" class="toast hidden"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAQ-a7gAcDJHqio3-umcu5TpN5UK_E9w2o",
+    authDomain: "cocktails-manila-inventory.firebaseapp.com",
+    projectId: "cocktails-manila-inventory",
+    storageBucket: "cocktails-manila-inventory.firebasestorage.app",
+    messagingSenderId: "767327100367",
+    appId: "1:767327100367:web:e6932cf67d8350a93946ba"
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
+<script src="js/app.js"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+</script>
+</body>
+</html>
+Steps sa GitHub sa phone:
+
+Buksan yung repo mo → tap index.html
+Tap yung pencil icon (edit)
+Select all yung lumang code, delete, tapos paste itong bago
+Tap Commit changes
+Hintay 1-2 minutes, tapos refresh yung app sa phone
+Try mo tapos sabihin mo kung nawala na yung galaw. Kung meron pa rin, paste mo yung css/style.css mo dito para makita ko kung anong element yung nagpapalawak ng page. 😊
+
+1783474551826_image.png
+1783474564276_image.png
+pano kaya mapapalitan to ng 18/20 kasi may nawala ng gamit yung isang staff? ganito sana mangyari 18/20 - Not Complete or Incomplete
+
+
+Pinag-aralan ang inventory calculation logic para sa damaged items
+Pinag-aralan ang inventory calculation logic para sa damaged items
+Ah gets na gets ko! Yung nangyari kasi diyan, pag na-mark na damaged/lost yung 2 lamps, binabawasan ng app yung total count mo — kaya naging 18 na lang yung total, tapos 18/18 = "complete" na daw. Pero dapat nga, yung total mo ay nasa 20 pa rin (yung original count mo), tapos lalabas na 18/20 — Incomplete para kita mo agad na may kulang.
+
+Yung logic na yan nasa js/app.js file mo nakatago, hindi sa index.html — kaya kailangan ko makita yung file na yun para ma-edit ko yung tamang parte.
+
+Dalawang options para maibigay mo sakin:
+
+I-attach yung js/app.js file dito sa chat (mas maganda ito kasi malamang mahaba yung file), o
+I-send yung link ng GitHub repo mo — kung public siya, kaya kong basahin doon mismo yung code
+Pag nakita ko na yung app.js, ito yung gagawin ko: papanatilihin natin yung original quantity ng item, tapos yung display magiging ganito — 18/20 · Incomplete (pula o orange yung kulay para kapansin-pansin) pag may damaged/lost o hindi pa kumpleto ang balik, at 20/20 · Complete (green) pag buo lahat. Sound good? 😊
+
+
+/* ============================================================ Inventory App — Event Equipment · Toolbox · Food Three sectors, per-event tracking, checker accountability. Data stored in cloud (Firestore) + local cache (localStorage). Email/Password login — only approved emails can sign
+
+pasted
+
+
+Architected display logic revision and prepared complete file delivery
+Architected display logic revision and prepared complete file delivery
+Perfect, nakuha ko na! Nakita ko na yung problema sa code — nasa itemCard at renderToolbox functions. Yung display kasi gumagamit ng ownedEffective (na binabawasan na ng damaged/lost) bilang total, kaya 18/18 na agad. Papalitan ko para yung original owned quantity (20) ang laging denominator, tapos may "Incomplete" label na pula pag may damaged/lost.
+
+Gagawin ko na yung buong updated file:
+
+
+Creating updated app.js with 18/20 Incomplete display logic — original owned count as denominator, red Incomplete label when items are damaged/lost
+Creating updated app.js with 18/20 Incomplete display logic — original owned count as denominator, red Incomplete label when items are damaged/lost
+1783496272976_image.png
+the search bar here is not searchable pls make this searchable
+
+
+Strategized function placement to enable search functionality
+Strategized function placement to enable search functionality
+Ayan, updated na yung app.js! Ito na yung buong file na may dalawang fixes sabay:
+
+Fix 1 — 18/20 Incomplete display (yung una mong hiniling). Yung Lamps mo, lalabas na ngayon na 18/20 na pula, na may "Incomplete" label, dahil nawala yung 2. Yung total (20) hindi na
+
+
+App
+JS 
+
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+App · JS
 /* ============================================================
    Inventory App — Event Equipment · Toolbox · Food
    Three sectors, per-event tracking, checker accountability.
    Data stored in cloud (Firestore) + local cache (localStorage).
    Email/Password login — only approved emails can sign up.
    ============================================================ */
-
+ 
 'use strict';
-
+ 
 var LS_KEY = 'cci-inventory-v1';
 var PESO = '₱';
-
+ 
 /* ---------- Firebase / Auth ---------- */
 var fsDB = null;
 try { fsDB = firebase.firestore(); } catch (e) { console.error('Firestore init error', e); }
 var CLOUD_DOC = fsDB ? fsDB.collection('inventory').doc('main') : null;
-
+ 
 var fbAuth = null;
 try { fbAuth = firebase.auth(); } catch (e) { console.error('Auth init error', e); }
-
+ 
 // REPLACE this with the real email of each staff member who is allowed to sign up
 var ALLOWED_EMAILS = [
   'carl.cocktailsmanila@gmail.com'
 ];
-
+ 
 var currentUser = null;
 var authMode = 'signin';   // 'signin' or 'signup'
-
+ 
 function isAllowed(email) {
   return email && ALLOWED_EMAILS.indexOf(email.toLowerCase()) >= 0;
 }
@@ -76,7 +313,7 @@ function doSignup() {
 function doLogout() {
   fbAuth.signOut();
 }
-
+ 
 function renderLoginScreen() {
   var nav = document.querySelector('.bottomnav');
   if (nav) nav.style.display = 'none';
@@ -106,7 +343,7 @@ function renderLoginScreen() {
           '<div class="hint" style="margin-top:8px"><a href="#" onclick="doForgotPassword();return false;">Forgot password?</a></div>') +
     '</div>';
 }
-
+ 
 /* ---------- state ---------- */
 var db = loadDB();
 var route = { tab: 'events', eventId: null, lead: null };
@@ -117,7 +354,7 @@ var dbMaterialFilter = 'all';
 var photoTemp = null;
 var photoCallback = null;
 var pickerCallback = null;
-
+ 
 /* ---------- storage ---------- */
 function loadDB() {
   try {
@@ -129,7 +366,7 @@ function loadDB() {
   } catch (e) { }
   return seedDB();
 }
-
+ 
 function saveDB() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(db));
@@ -143,7 +380,7 @@ function saveDB() {
     alert('Could not save! Device storage may be full. Export a backup and delete old photos.');
   }
 }
-
+ 
 function seedDB() {
   function it(name, category, opts) {
     var o = opts || {};
@@ -177,7 +414,7 @@ function seedDB() {
     deliveries: []
   };
 }
-
+ 
 /* ---------- utils ---------- */
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function esc(s) {
@@ -221,7 +458,7 @@ function catIcon(it) {
 function isConsumable(it) {
   return it.category === 'food' || (it.category === 'toolbox' && it.disposable);
 }
-
+ 
 /* ---------- derived numbers ---------- */
 function totalDamagedLost(itemId) {
   var t = 0;
@@ -286,7 +523,7 @@ function eventUsageCost(ev, category) {
   });
   return t;
 }
-
+ 
 /* ============================================================
    NAVIGATION
    ============================================================ */
@@ -297,7 +534,7 @@ function go(tab, param) {
   render();
   window.scrollTo(0, 0);
 }
-
+ 
 function render() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var nav = document.querySelector('.bottomnav');
@@ -319,7 +556,7 @@ function render() {
   else if (route.tab === 'leads') v.innerHTML = renderLeads();
   else if (route.tab === 'leadDetail') v.innerHTML = renderLeadDetail(route.lead);
 }
-
+ 
 /* ============================================================
    TAB: DATABASE
    ============================================================ */
@@ -328,7 +565,7 @@ function dbTabLabel(tab) {
   if (tab === 'toolbox') return 'Toolbox';
   return 'Food';
 }
-
+ 
 function getMaterials(cat) {
   var set = {};
   db.items.forEach(function (it) {
@@ -336,7 +573,7 @@ function getMaterials(cat) {
   });
   return Object.keys(set).sort();
 }
-
+ 
 function dbTabItems(tab) {
   var q = dbSearch.trim().toLowerCase();
   return db.items.filter(function (it) {
@@ -352,23 +589,23 @@ function dbTabItems(tab) {
     return true;
   }).sort(byName);
 }
-
+ 
 function renderDatabase() {
   var tabs = ['event', 'toolbox', 'food'];
   var html = '<div class="chips" style="margin-bottom:10px">' + tabs.map(function (t) {
     return '<button class="chip' + (dbTab === t ? ' active' : '') +
       '" style="flex:1" onclick="dbTab=\'' + t + '\';dbFilter=\'all\';dbMaterialFilter=\'all\';render()">' + dbTabLabel(t) + '</button>';
   }).join('') + '</div>';
-
+ 
   html += '<input class="search" placeholder="🔍 Search for an item…" value="' + esc(dbSearch) + '" oninput="dbSearch=this.value;refreshDbList()">';
-
+ 
   if (dbTab === 'toolbox') {
     var subChips = [['all', 'All'], ['toolbox-n', '🧰 Returnable'], ['toolbox-d', '🧰 Disposable']];
     html += '<div class="chips">' + subChips.map(function (c) {
       return '<button class="chip' + (dbFilter === c[0] ? ' active' : '') + '" onclick="dbFilter=\'' + c[0] + '\';render()">' + c[1] + '</button>';
     }).join('') + '</div>';
   }
-
+ 
   if (dbTab === 'event' || dbTab === 'food') {
     var materials = getMaterials(dbTab);
     if (materials.length) {
@@ -380,23 +617,23 @@ function renderDatabase() {
         '</div>';
     }
   }
-
+ 
   html += '<div id="dbList">' + dbListHTML(dbTabItems(dbTab)) + '</div>';
   html += '<button onclick="openItemForm(null,\'' + dbTab + '\')" title="Add Item to ' + dbTabLabel(dbTab) + '" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
   return html;
 }
-
+ 
 function dbListHTML(items) {
   if (!items.length) return '<div class="empty">No items. Tap "＋" to add one.</div>';
   return items.map(function (it) { return itemCard(it); }).join('');
 }
-
+ 
 function refreshDbList() {
   var el = document.getElementById('dbList');
   if (!el) return;
   el.innerHTML = dbListHTML(dbTabItems(dbTab));
 }
-
+ 
 function itemCard(it) {
   var avail = availableNow(it);
   var low = isConsumable(it) && it.reorderPoint > 0 && avail <= it.reorderPoint;
@@ -426,12 +663,12 @@ function itemCard(it) {
     '<div>' + right + '</div>' +
     '</div></div>';
 }
-
+ 
 function photoThumb(it) {
   if (it.photo) return '<img class="thumb" src="' + it.photo + '" alt="">';
   return '<div class="thumb">' + catIcon(it) + '</div>';
 }
-
+ 
 function openItemForm(id, presetTab) {
   var it = id ? getItem(id) : null;
   photoTemp = it ? it.photo : null;
@@ -467,9 +704,9 @@ function openItemForm(id, presetTab) {
     '</div>';
   openModal(html);
 }
-
+ 
 function opt(v, label, sel) { return '<option value="' + v + '"' + (sel ? ' selected' : '') + '>' + label + '</option>'; }
-
+ 
 function formPhotoHTML() {
   if (photoTemp) return '<img class="thumb-lg" src="' + photoTemp + '" alt="">';
   return '<div class="thumb-lg">📷</div>';
@@ -484,7 +721,7 @@ function itemFormToggle() {
   document.getElementById('f_nonconsRow').style.display = consumable ? 'none' : '';
   document.getElementById('f_consRow').style.display = consumable ? '' : 'none';
 }
-
+ 
 function saveItemForm(id) {
   var name = document.getElementById('f_name').value.trim();
   if (!name) { alert('Enter the item name.'); return; }
@@ -504,7 +741,7 @@ function saveItemForm(id) {
   saveDB(); closeModal(); render();
   toast('✅ Saved: ' + name);
 }
-
+ 
 function deleteItem(id) {
   var it = getItem(id);
   if (!it) return;
@@ -520,13 +757,22 @@ function deleteItem(id) {
   saveDB(); closeModal(); render();
   toast('🗑️ Deleted: ' + it.name);
 }
-
+ 
 /* ============================================================
    TAB: EVENTS
    ============================================================ */
 var eventSearch = '';
-
+ 
 function renderEvents() {
+  /* CHANGED: search now refreshes only the list (not the whole page),
+     so the search box keeps focus and the keyboard stays open while typing */
+  var html = '<input class="search" placeholder="🔍 Search by event, lead, or venue…" value="' + esc(eventSearch) + '" oninput="eventSearch=this.value;refreshEventList()">';
+  html += '<div id="eventList">' + eventListHTML() + '</div>';
+  html += '<button onclick="openEventForm()" title="New Event" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
+  return html;
+}
+ 
+function eventListHTML() {
   var q = eventSearch.trim().toLowerCase();
   var matches = function (ev) {
     if (!q) return true;
@@ -538,12 +784,10 @@ function renderEvents() {
   var closed = db.events.filter(function (e) { return e.status === 'closed' && matches(e); });
   open.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
   closed.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
-
-  var html = '<input class="search" placeholder="🔍 Search by event, lead, or venue…" value="' + esc(eventSearch) + '" oninput="eventSearch=this.value;render()">';
-
-  html += '<div class="section-title">Open Events (' + open.length + ')</div>';
+ 
+  var html = '<div class="section-title">Open Events (' + open.length + ')</div>';
   html += open.length ? open.map(eventCard).join('') : '<div class="empty">No open events.</div>';
-
+ 
   if (closed.length) {
     html += '<div class="section-title">Completed (' + closed.length + ')</div>';
     html += closed.slice(0, 20).map(eventCard).join('');
@@ -551,11 +795,14 @@ function renderEvents() {
   } else if (q) {
     html += '<div class="empty">No matching events.</div>';
   }
-
-  html += '<button onclick="openEventForm()" title="New Event" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
   return html;
 }
-
+ 
+function refreshEventList() {
+  var el = document.getElementById('eventList');
+  if (el) el.innerHTML = eventListHTML();
+}
+ 
 function eventCard(ev) {
   var pend = eventPending(ev);
   var issues = eventIssues(ev);
@@ -576,7 +823,7 @@ function eventCard(ev) {
     '<div style="margin-top:8px">' + badge + '</div>' +
     '</div>';
 }
-
+ 
 function openEventForm(id) {
   var ev = id ? getEvent(id) : null;
   var html = '<h3>' + (ev ? 'Edit Event' : 'New Event') + '</h3>' +
@@ -592,7 +839,7 @@ function openEventForm(id) {
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveEventForm(' + (ev ? '\'' + ev.id + '\'' : 'null') + ')">Save</button></div>';
   openModal(html);
 }
-
+ 
 function saveEventForm(id) {
   var name = document.getElementById('e_name').value.trim();
   if (!name) { alert('Enter the event name.'); return; }
@@ -608,7 +855,7 @@ function saveEventForm(id) {
   if (isNew) go('eventDetail', ev.id); else render();
   toast('✅ Event saved');
 }
-
+ 
 /* ---- event detail ---- */
 function renderEventDetail(id) {
   var ev = getEvent(id);
@@ -652,15 +899,15 @@ function renderEventDetail(id) {
       '</div></div>';
   });
   if (!closed) html += '<button class="btn-add" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button>';
-
+ 
   html += '<div class="section-title">🧰 Disposables Used</div>';
   html += usageList(ev, 'toolbox', closed);
   if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button>';
-
+ 
   html += '<div class="section-title">🍲 Food Used</div>';
   html += usageList(ev, 'food', closed);
   if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button>';
-
+ 
   if (!closed) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' +
@@ -675,11 +922,11 @@ function renderEventDetail(id) {
   }
   return html;
 }
-
+ 
 function tile(numStr, label, cls) {
   return '<div class="tile ' + (cls || '') + '"><div class="t-num">' + numStr + '</div><div class="t-label">' + label + '</div></div>';
 }
-
+ 
 function usageList(ev, category, closed) {
   var rows = (ev.usage || []).map(function (u, idx) { return { u: u, idx: idx }; })
     .filter(function (r) { var it = getItem(r.u.itemId); return it && it.category === category; });
@@ -694,7 +941,7 @@ function usageList(ev, category, closed) {
       '</div></div>';
   }).join('');
 }
-
+ 
 function openReleasePicker(evId) {
   openPicker(
     function (it) { return !isConsumable(it); },
@@ -702,7 +949,7 @@ function openReleasePicker(evId) {
     'Select item to release'
   );
 }
-
+ 
 function openReleaseQty(evId, itemId) {
   var it = getItem(itemId);
   var avail = availableNow(it);
@@ -713,7 +960,7 @@ function openReleaseQty(evId, itemId) {
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doRelease(\'' + evId + '\',\'' + itemId + '\')">Save Release</button></div>';
   openModal(html);
 }
-
+ 
 function doRelease(evId, itemId) {
   var ev = getEvent(evId); var it = getItem(itemId);
   if (!ev || !it) return;
@@ -733,7 +980,7 @@ function doRelease(evId, itemId) {
   saveDB(); closeModal(); render();
   toast('📤 Released: ' + qty + ' ' + it.name);
 }
-
+ 
 function openReturnForm(evId, lineIdx) {
   var ev = getEvent(evId); var l = ev.lines[lineIdx];
   var it = getItem(l.itemId);
@@ -746,7 +993,7 @@ function openReturnForm(evId, lineIdx) {
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doReturn(\'' + evId + '\',' + lineIdx + ')">Save Return</button></div>';
   openModal(html);
 }
-
+ 
 function doReturn(evId, lineIdx) {
   var ev = getEvent(evId); var l = ev.lines[lineIdx];
   var it = getItem(l.itemId);
@@ -763,7 +1010,7 @@ function doReturn(evId, lineIdx) {
   saveDB(); closeModal(); render();
   toast('📥 Returned: ' + ok + (dmg ? ' · Damaged: ' + dmg : '') + ' — ' + (it ? it.name : ''));
 }
-
+ 
 function openUsagePicker(evId, category) {
   openPicker(
     function (it) { return isConsumable(it) && it.category === category; },
@@ -771,7 +1018,7 @@ function openUsagePicker(evId, category) {
     category === 'food' ? 'Select food used' : 'Select disposable used'
   );
 }
-
+ 
 function openUsageQty(evId, itemId) {
   var it = getItem(itemId);
   var html = '<h3>Use: ' + esc(it.name) + '</h3>' +
@@ -780,7 +1027,7 @@ function openUsageQty(evId, itemId) {
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doUsage(\'' + evId + '\',\'' + itemId + '\')">Save</button></div>';
   openModal(html);
 }
-
+ 
 function doUsage(evId, itemId) {
   var ev = getEvent(evId); var it = getItem(itemId);
   if (!ev || !it) return;
@@ -796,7 +1043,7 @@ function doUsage(evId, itemId) {
   var low = it.reorderPoint > 0 && it.stock <= it.reorderPoint;
   toast('✅ Used: ' + qty + ' ' + it.unit + ' ' + it.name + (low ? ' — ⚠️ stock running low!' : ''));
 }
-
+ 
 function editUsage(evId, usageIdx) {
   var ev = getEvent(evId); var u = ev.usage[usageIdx];
   var it = getItem(u.itemId);
@@ -809,7 +1056,7 @@ function editUsage(evId, usageIdx) {
     '</div>';
   openModal(html);
 }
-
+ 
 function saveUsageEdit(evId, usageIdx, remove) {
   var ev = getEvent(evId); var u = ev.usage[usageIdx];
   var it = getItem(u.itemId);
@@ -822,7 +1069,7 @@ function saveUsageEdit(evId, usageIdx, remove) {
   saveDB(); closeModal(); render();
   toast('✅ Updated');
 }
-
+ 
 function closeEvent(evId) {
   var ev = getEvent(evId);
   var pend = eventPending(ev);
@@ -840,7 +1087,7 @@ function closeEvent(evId) {
   saveDB(); render();
   toast('🔒 Event closed');
 }
-
+ 
 function deleteEvent(evId) {
   var ev = getEvent(evId);
   if (!confirm('Delete event "' + ev.name + '"? Recorded consumables used will be returned to stock.')) return;
@@ -852,7 +1099,7 @@ function deleteEvent(evId) {
   saveDB(); go('events');
   toast('🗑️ Event deleted');
 }
-
+ 
 /* ============================================================
    TAB: TOOLBOX
    ============================================================ */
@@ -860,15 +1107,15 @@ function renderToolbox() {
   var items = db.items.filter(function (it) { return it.category === 'toolbox'; });
   items.sort(byName);
   var lowCount = items.filter(function (it) { return it.disposable && isLow(it); }).length;
-
+ 
   var html = '<div class="tiles">' +
     tile(String(items.length), 'Toolbox items') +
     tile(String(lowCount), 'Need reordering', lowCount ? 'bad' : '') +
     '</div>';
-
+ 
   html += '<div class="section-title">🧰 Toolbox</div>';
   if (!items.length) html += '<div class="empty">No toolbox items yet. Add one in the Database tab.</div>';
-
+ 
   items.forEach(function (it) {
     if (it.disposable) {
       var low = isLow(it);
@@ -895,14 +1142,14 @@ function renderToolbox() {
         '</div></div>';
     }
   });
-
+ 
   html += '<div class="hint" style="margin:4px 2px 14px">Releasing/returning returnable items is done inside each <b>Event</b>. Disposables are restocked via "＋ Delivery".</div>';
   return html;
 }
-
+ 
 function byName(a, b) { return a.name.localeCompare(b.name); }
 function isLow(it) { return it.reorderPoint > 0 && (it.stock || 0) <= it.reorderPoint; }
-
+ 
 /* ============================================================
    TAB: FOOD
    ============================================================ */
@@ -910,7 +1157,7 @@ function renderFood() {
   var foods = db.items.filter(function (it) { return it.category === 'food'; });
   foods.sort(byName);
   var lowCount = foods.filter(isLow).length;
-
+ 
   var month = today().slice(0, 7);
   var boughtMonth = 0;
   db.deliveries.forEach(function (d) {
@@ -922,13 +1169,13 @@ function renderFood() {
   db.events.forEach(function (ev) {
     if ((ev.date || '').slice(0, 7) === month) usedMonth += eventUsageCost(ev, 'food');
   });
-
+ 
   var html = '<div class="tiles">' +
     tile(money(boughtMonth), 'Bought this month') +
     tile(money(usedMonth), 'Used in events this month') +
     '</div>';
   if (lowCount) html += '<div class="notice red">⚠️ ' + lowCount + ' food item(s) low on stock.</div>';
-
+ 
   html += '<div class="section-title">🍲 Storage Levels</div>';
   if (!foods.length) html += '<div class="empty">No food items yet. Add one in the Database tab.</div>';
   foods.forEach(function (it) {
@@ -941,7 +1188,7 @@ function renderFood() {
       '<div><div class="stat-num"' + (low ? ' style="color:var(--red)"' : '') + '>' + (it.stock || 0) + '</div><div class="stat-label">' + esc(it.unit) + '</div></div>' +
       '</div></div>';
   });
-
+ 
   var groups = {};
   var order = [];
   db.deliveries.forEach(function (d) {
@@ -950,7 +1197,7 @@ function renderFood() {
     groups[key].push(d);
   });
   order.sort(function (a, b) { return b.localeCompare(a); });
-
+ 
   html += '<div class="section-title">📦 Weekly Stock Purchased / Deliveries</div>';
   if (!order.length) html += '<div class="empty">No deliveries recorded yet.</div>';
   order.slice(0, 15).forEach(function (key) {
@@ -972,14 +1219,14 @@ function renderFood() {
       '</div>';
   });
   if (order.length > 15) html += '<div class="hint" style="text-align:center">…and ' + (order.length - 15) + ' more</div>';
-
+ 
   html += '<button onclick="openDeliveryForm()" title="New Delivery (Weekly Stock)" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
   return html;
 }
-
+ 
 var deliveryLines = [];
 var deliveryHeader = { date: '', supplier: '', checker: '' };
-
+ 
 function openDeliveryForm(presetItemId) {
   deliveryLines = [];
   deliveryHeader = { date: today(), supplier: '', checker: '' };
@@ -989,7 +1236,7 @@ function openDeliveryForm(presetItemId) {
   }
   renderDeliveryModal();
 }
-
+ 
 function renderDeliveryModal() {
   var html = '<h3>📦 New Delivery / Stock In</h3>' +
     '<div class="field-row">' +
@@ -1004,7 +1251,7 @@ function renderDeliveryModal() {
   openModal(html);
   refreshDeliveryLines();
 }
-
+ 
 function addDeliveryLine() {
   openPicker(
     function (it) { return isConsumable(it); },
@@ -1015,7 +1262,7 @@ function addDeliveryLine() {
     'Select delivered item'
   );
 }
-
+ 
 function refreshDeliveryLines() {
   var box = document.getElementById('d_lines');
   if (!box) return;
@@ -1033,7 +1280,7 @@ function refreshDeliveryLines() {
       '</div></div>';
   }).join('');
 }
-
+ 
 function saveDelivery() {
   var date = deliveryHeader.date || today();
   var supplier = (deliveryHeader.supplier || '').trim();
@@ -1050,7 +1297,7 @@ function saveDelivery() {
   saveDB(); closeModal(); render();
   toast('📦 Delivery saved (' + valid.length + ' item(s))');
 }
-
+ 
 /* ============================================================
    TAB: LEADS
    ============================================================ */
@@ -1067,10 +1314,10 @@ function renderLeads() {
     L.damageValue += eventDamageValue(ev);
   });
   order.sort();
-
+ 
   var html = '<div class="hint" style="margin:2px 2px 12px">This shows who is <b>cleared</b> and who has <b>pending items or damages</b> from their events.</div>';
   if (!order.length) return html + '<div class="empty">No events yet, so no lead records yet.</div>';
-
+ 
   window._leadNames = order;
   order.forEach(function (name, i) {
     var L = leads[name];
@@ -1099,7 +1346,7 @@ function renderLeadDetail(name) {
   evs.forEach(function (ev) { html += eventCard(ev); });
   return html;
 }
-
+ 
 /* ============================================================
    SHARED: item picker modal
    ============================================================ */
@@ -1112,7 +1359,7 @@ function openPicker(filterFn, onPick, title) {
   openModal(html);
   window._pickerFilter = filterFn;
 }
-
+ 
 function pickerListHTML(items) {
   if (!items.length) return '<div class="empty">No matching items. Add one in the Database tab first.</div>';
   return items.map(function (it) {
@@ -1126,7 +1373,7 @@ function pickerListHTML(items) {
       '</button>';
   }).join('');
 }
-
+ 
 function filterPicker(q) {
   q = q.trim().toLowerCase();
   var items = db.items.filter(window._pickerFilter).filter(function (it) {
@@ -1135,14 +1382,14 @@ function filterPicker(q) {
   var el = document.getElementById('pickerList');
   if (el) el.innerHTML = pickerListHTML(items);
 }
-
+ 
 function pickItem(id) {
   var it = getItem(id);
   var cb = pickerCallback;
   pickerCallback = null;
   if (cb && it) cb(it);
 }
-
+ 
 /* ============================================================
    SHARED: modal, photo, menu, toast
    ============================================================ */
@@ -1157,7 +1404,7 @@ function closeModal() {
 function overlayClick(e) {
   if (e.target === document.getElementById('modalOverlay')) closeModal();
 }
-
+ 
 function capturePhoto(cb) {
   photoCallback = cb;
   document.getElementById('photoInput').click();
@@ -1185,7 +1432,7 @@ document.getElementById('photoInput').addEventListener('change', function () {
   };
   reader.readAsDataURL(file);
 });
-
+ 
 function openMenu() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var html = '<h3>Menu</h3>' +
@@ -1201,7 +1448,7 @@ function openChangePassword() {
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doChangePassword()">Update Password</button></div>';
   openModal(html);
 }
-
+ 
 function doChangePassword() {
   var pass1 = document.getElementById('cp_new').value;
   var pass2 = document.getElementById('cp_confirm').value;
@@ -1216,7 +1463,7 @@ function doChangePassword() {
     alert('Could not update password: ' + err.message);
   });
 }
-
+ 
 function exportData() {
   var blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
   var a = document.createElement('a');
@@ -1228,7 +1475,7 @@ function exportData() {
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
   toast('💾 Backup downloaded');
 }
-
+ 
 document.getElementById('importInput').addEventListener('change', function () {
   var file = this.files && this.files[0];
   this.value = '';
@@ -1248,7 +1495,7 @@ document.getElementById('importInput').addEventListener('change', function () {
   };
   reader.readAsText(file);
 });
-
+ 
 function resetData() {
   if (!confirm('ARE YOU SURE? This will delete ALL items, events, and deliveries. This cannot be undone. Export a backup first if needed.')) return;
   if (!confirm('One last check: really delete everything?')) return;
@@ -1256,7 +1503,7 @@ function resetData() {
   saveDB(); closeModal(); render();
   toast('🗑️ Data reset');
 }
-
+ 
 var toastTimer = null;
 function toast(msg) {
   var t = document.getElementById('toast');
@@ -1265,7 +1512,7 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function () { t.classList.add('hidden'); }, 2600);
 }
-
+ 
 /* ---------- boot ---------- */
 function startCloudSync() {
   if (!CLOUD_DOC) return;
@@ -1285,7 +1532,7 @@ function startCloudSync() {
     toast('⚠️ Could not connect to cloud — running offline.');
   });
 }
-
+ 
 if (fbAuth) {
   fbAuth.onAuthStateChanged(function (user) {
     if (user) {
@@ -1301,3 +1548,6 @@ if (fbAuth) {
   render();
   startCloudSync();
 }
+ 
+
+
