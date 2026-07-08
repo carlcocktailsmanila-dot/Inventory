@@ -1477,9 +1477,19 @@ function migrateOldPhotos() {
   if (changed) { saveDB(); render(); toast('📷 Photos moved to safer storage'); }
 }
 
+/* CHANGED: keep track of the live listeners so we can properly disconnect on logout */
+var _unsubMain = null;
+var _unsubPhotos = null;
+
+function stopCloudSync() {
+  if (_unsubMain) { _unsubMain(); _unsubMain = null; }
+  if (_unsubPhotos) { _unsubPhotos(); _unsubPhotos = null; }
+}
+
 function startCloudSync() {
   if (!CLOUD_DOC) return;
-  CLOUD_DOC.onSnapshot(function (snap) {
+  stopCloudSync(); /* avoid duplicate listeners when logging in again */
+  _unsubMain = CLOUD_DOC.onSnapshot(function (snap) {
     if (snap.exists) {
       var remote = snap.data();
       if (remote && remote.items && remote.events && remote.deliveries) {
@@ -1493,10 +1503,12 @@ function startCloudSync() {
     }
   }, function (err) {
     console.error('Cloud listen error', err);
-    toast('⚠️ Could not connect to cloud — running offline.');
+    /* CHANGED: only warn if someone is actually logged in — a logged-out
+       connection error is expected and not worth alarming anyone about */
+    if (currentUser) toast('⚠️ Could not connect to cloud — running offline.');
   });
   /* CHANGED: live-sync item photos from their own collection */
-  fsDB.collection('photos').onSnapshot(function (snap) {
+  _unsubPhotos = fsDB.collection('photos').onSnapshot(function (snap) {
     var changed = false;
     snap.docChanges().forEach(function (ch) {
       if (ch.type === 'removed') { delete PHOTOS[ch.doc.id]; changed = true; }
@@ -1514,6 +1526,7 @@ if (fbAuth) {
       startCloudSync();
     } else {
       currentUser = null;
+      stopCloudSync(); /* CHANGED: disconnect cleanly on logout */
       renderLoginScreen();
     }
     hideSplash();
