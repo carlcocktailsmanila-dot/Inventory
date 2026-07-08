@@ -105,10 +105,15 @@ function doSignup() {
   });
 }
 function doLogout() {
+  /* CHANGED: close the menu/any open modal before signing out */
+  closeModal();
   fbAuth.signOut();
 }
 
 function renderLoginScreen() {
+  /* CHANGED: make sure no modal is left open on top of the login screen */
+  var mo = document.getElementById('modalOverlay');
+  if (mo) { mo.classList.add('hidden'); document.getElementById('modal').innerHTML = ''; }
   var nav = document.querySelector('.bottomnav');
   if (nav) nav.style.display = 'none';
   var menuBtn = document.querySelector('.icon-btn');
