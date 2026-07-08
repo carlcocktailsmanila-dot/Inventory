@@ -1,7 +1,3 @@
-
-Claude is responding
-dito na ako amg chat mapupuno na kasi yung pinagusapan natin sa isang chat
-
 <!DOCTYPE html>
 <html lang="fil">
 <head>
