@@ -684,15 +684,15 @@ function renderEventDetail(id) {
         '<div class="' + (p > 0 ? 'pend' : 'ok') + '"><div class="lg-num">' + p + '</div><div class="lg-label">PENDING</div></div>' +
       '</div></div>';
   });
-  if (!closed) html += '<button class="btn-add" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button>';
+  if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button></div>';
 
   html += '<div class="section-title">🧰 Disposables Used</div>';
   html += usageList(ev, 'toolbox', closed);
-  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button>';
+  if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button></div>';
 
   html += '<div class="section-title">🍲 Food Used</div>';
   html += usageList(ev, 'food', closed);
-  if (!closed) html += '<button class="btn-add" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button>';
+  if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button></div>';
 
   if (!closed) {
     html += '<div class="btn-row" style="margin-top:16px">' +
