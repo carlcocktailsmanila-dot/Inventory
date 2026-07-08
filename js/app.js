@@ -39,7 +39,7 @@ function isAdmin() {
    Used to auto-fill the "Lead" field with whoever is logged in. */
 var STAFF_NAMES = {
   'carl.cocktailsmanila@gmail.com': 'Carl',
-  'meanne@gmail.com': 'Meanne'
+  'meanne@gmail.com': 'Meanne',
   'evelyn@gmail.com': 'Evelyn'
 
 };
