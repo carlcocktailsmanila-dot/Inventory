@@ -1091,7 +1091,7 @@ var leadSearch = '';
 
 function renderLeads() {
   /* CHANGED: added lead search bar — refreshes only the list so the keyboard stays open */
-  var html = '<input class="search" placeholder="🔍 Search lead name…" value="' + esc(leadSearch) + '" oninput="leadSearch=this.value;refreshLeadList()">';
+  var html = '<input class="search" placeholder="🔍 Search lead, client/event, or date…" value="' + esc(leadSearch) + '" oninput="leadSearch=this.value;refreshLeadList()">';
   html += '<div class="hint" style="margin:2px 2px 12px">This shows who is <b>cleared</b> and who has <b>pending items or damages</b> from their events.</div>';
   html += '<div id="leadList">' + leadListHTML() + '</div>';
   return html;
@@ -1102,19 +1102,25 @@ function leadListHTML() {
   var order = [];
   db.events.forEach(function (ev) {
     var name = (ev.lead || '').trim() || '(no lead)';
-    if (!leads[name]) { leads[name] = { events: 0, open: 0, pending: 0, issues: 0, damageValue: 0 }; order.push(name); }
+    if (!leads[name]) { leads[name] = { events: 0, open: 0, pending: 0, issues: 0, damageValue: 0, blob: '' }; order.push(name); }
     var L = leads[name];
     L.events++;
     if (ev.status === 'open') { L.open++; L.pending += eventPending(ev); }
     L.issues += eventIssues(ev);
     L.damageValue += eventDamageValue(ev);
+    /* CHANGED: collect each lead's event names + dates so search can match them too */
+    L.blob += ' ' + (ev.name || '') + ' ' + (ev.date || '') + ' ' + fmtDate(ev.date) + ' ' + (ev.venue || '');
   });
   order.sort();
 
   if (!order.length) return '<div class="empty">No events yet, so no lead records yet.</div>';
 
   var q = leadSearch.trim().toLowerCase();
-  var filtered = order.filter(function (n) { return !q || n.toLowerCase().indexOf(q) >= 0; });
+  var filtered = order.filter(function (n) {
+    if (!q) return true;
+    if (n.toLowerCase().indexOf(q) >= 0) return true;
+    return leads[n].blob.toLowerCase().indexOf(q) >= 0;
+  });
   if (!filtered.length) return '<div class="empty">No matching leads.</div>';
 
   window._leadNames = filtered;
