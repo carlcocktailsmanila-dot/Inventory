@@ -1064,7 +1064,17 @@ function saveDelivery() {
 /* ============================================================
    TAB: LEADS
    ============================================================ */
+var leadSearch = '';
+
 function renderLeads() {
+  /* CHANGED: added lead search bar — refreshes only the list so the keyboard stays open */
+  var html = '<input class="search" placeholder="🔍 Search lead name…" value="' + esc(leadSearch) + '" oninput="leadSearch=this.value;refreshLeadList()">';
+  html += '<div class="hint" style="margin:2px 2px 12px">This shows who is <b>cleared</b> and who has <b>pending items or damages</b> from their events.</div>';
+  html += '<div id="leadList">' + leadListHTML() + '</div>';
+  return html;
+}
+
+function leadListHTML() {
   var leads = {};
   var order = [];
   db.events.forEach(function (ev) {
@@ -1078,11 +1088,15 @@ function renderLeads() {
   });
   order.sort();
 
-  var html = '<div class="hint" style="margin:2px 2px 12px">This shows who is <b>cleared</b> and who has <b>pending items or damages</b> from their events.</div>';
-  if (!order.length) return html + '<div class="empty">No events yet, so no lead records yet.</div>';
+  if (!order.length) return '<div class="empty">No events yet, so no lead records yet.</div>';
 
-  window._leadNames = order;
-  order.forEach(function (name, i) {
+  var q = leadSearch.trim().toLowerCase();
+  var filtered = order.filter(function (n) { return !q || n.toLowerCase().indexOf(q) >= 0; });
+  if (!filtered.length) return '<div class="empty">No matching leads.</div>';
+
+  window._leadNames = filtered;
+  var html = '';
+  filtered.forEach(function (name, i) {
     var L = leads[name];
     var cleared = L.pending === 0 && L.issues === 0;
     var badge = cleared ? '<span class="badge b-green">✅ Cleared</span>' :
@@ -1096,6 +1110,11 @@ function renderLeads() {
       '</div></div>';
   });
   return html;
+}
+
+function refreshLeadList() {
+  var el = document.getElementById('leadList');
+  if (el) el.innerHTML = leadListHTML();
 }
 function renderLeadDetail(name) {
   var evs = db.events.filter(function (ev) {
@@ -1275,7 +1294,6 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function () { t.classList.add('hidden'); }, 2600);
 }
-
 /* ---------- boot ---------- */
 function startCloudSync() {
   if (!CLOUD_DOC) return;
