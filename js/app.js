@@ -21,12 +21,14 @@ try { fbAuth = firebase.auth(); } catch (e) { console.error('Auth init error', e
 // REPLACE this with the real email of each staff member who is allowed to sign up
 var ALLOWED_EMAILS = [
   'carl.cocktailsmanila@gmail.com'
+   'meanne@gmail.com'
 ];
 
 /* CHANGED: role system — emails listed here get FULL ACCESS (admin).
    Everyone else who signs in is Event Staff (Events tab only). */
 var ADMIN_EMAILS = [
   'carl.cocktailsmanila@gmail.com'
+    'meanne@gmail.com'
 ];
 
 function isAdmin() {
@@ -1197,7 +1199,15 @@ function pickItem(id) {
    SHARED: modal, photo, menu, toast
    ============================================================ */
 function openModal(html) {
-  document.getElementById('modal').innerHTML = html;
+  /* CHANGED: every modal now has a ✕ close button at the top-right,
+     so users can easily back out of any form (New Event, Add Item, Release, etc.) */
+  var m = document.getElementById('modal');
+  m.style.position = 'relative';
+  m.innerHTML =
+    '<button onclick="closeModal()" title="Close" aria-label="Close" ' +
+    'style="position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;border:none;' +
+    'background:#eceff1;color:#455a64;font-size:15px;font-weight:bold;cursor:pointer;line-height:1;z-index:5;' +
+    'display:flex;align-items:center;justify-content:center">✕</button>' + html;
   document.getElementById('modalOverlay').classList.remove('hidden');
 }
 function closeModal() {
