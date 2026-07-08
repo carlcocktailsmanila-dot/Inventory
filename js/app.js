@@ -316,9 +316,11 @@ function render() {
   if (nav) nav.style.display = '';
   var menuBtn = document.querySelector('.icon-btn');
   if (menuBtn) menuBtn.style.display = '';
-  /* CHANGED: role-based access — staff (non-admin) can only use the Events tab */
+  /* CHANGED: role-based access — staff (non-admin) can use Events + Leads tabs only.
+     Leads is view-only for them (delete buttons are already admin-only). */
   var admin = isAdmin();
-  if (!admin && route.tab !== 'events' && route.tab !== 'eventDetail') {
+  var staffTabs = ['events', 'eventDetail', 'leads', 'leadDetail'];
+  if (!admin && staffTabs.indexOf(route.tab) < 0) {
     route.tab = 'events'; route.eventId = null; route.lead = null;
   }
   var navTab = route.tab;
@@ -326,7 +328,7 @@ function render() {
   if (navTab === 'leadDetail') navTab = 'leads';
   document.querySelectorAll('.bottomnav button').forEach(function (b) {
     var t = b.getAttribute('data-tab');
-    b.style.display = (admin || t === 'events') ? '' : 'none';
+    b.style.display = (admin || t === 'events' || t === 'leads') ? '' : 'none';
     b.classList.toggle('active', t === navTab);
   });
   var v = document.getElementById('view');
