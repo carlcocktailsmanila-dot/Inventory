@@ -1291,12 +1291,41 @@ function renderLeadDetail(name) {
     return ((ev.lead || '').trim() || '(no lead)') === name;
   });
   evs.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+  window._leadDetailName = name;
   var html = '<button class="back-btn" onclick="go(\'leads\')">← Back to Leads</button>';
   html += '<div class="card"><div class="row"><div class="thumb">👤</div><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
-    '<div class="item-meta">' + evs.length + ' event record(s)</div></div></div></div>';
+    '<div class="item-meta">' + evs.length + ' event record(s)</div></div>' +
+    /* CHANGED: admin can rename a lead — updates the name on all their events */
+    (isAdmin() ? '<button class="btn btn-sm" onclick="openRenameLead(window._leadDetailName)">✏️ Rename</button>' : '') +
+    '</div></div>';
   evs.forEach(function (ev) { html += eventCard(ev); });
   return html;
+}
+
+/* CHANGED: rename a lead across all of their event records (admin only) */
+function openRenameLead(name) {
+  var html = '<h3>✏️ Rename Lead</h3>' +
+    '<div class="hint" style="margin-bottom:10px">This will update the lead name on <b>ALL events</b> under "' + esc(name) + '". Use this to fix typos or merge duplicate names (e.g. "ace" into "ACE").</div>' +
+    '<div class="field"><label>New name</label><input id="rl_name" value="' + esc(name === '(no lead)' ? '' : name) + '"></div>' +
+    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doRenameLead(window._leadDetailName)">Save</button></div>';
+  openModal(html);
+}
+
+function doRenameLead(oldName) {
+  if (!isAdmin()) return;
+  var newName = document.getElementById('rl_name').value.trim();
+  if (!newName) { alert('Enter the new name.'); return; }
+  if (newName === oldName) { closeModal(); return; }
+  var count = 0;
+  db.events.forEach(function (ev) {
+    var n = (ev.lead || '').trim() || '(no lead)';
+    if (n === oldName) { ev.lead = newName; count++; }
+  });
+  logAction('✏️ Renamed lead "' + oldName + '" → "' + newName + '" (' + count + ' event(s))');
+  saveDB(); closeModal();
+  go('leadDetail', newName);
+  toast('✅ Lead renamed: ' + newName);
 }
 
 /* ============================================================
