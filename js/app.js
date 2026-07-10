@@ -143,6 +143,12 @@ function renderLoginScreen() {
 /* ---------- state ---------- */
 var db = loadDB();
 var route = { tab: 'events', eventId: null, lead: null };
+/* CHANGED: remember the last tab/page, so a refresh brings you back
+   to where you were instead of always returning to Events */
+try {
+  var _savedRoute = JSON.parse(localStorage.getItem('cci-route') || 'null');
+  if (_savedRoute && _savedRoute.tab) route = _savedRoute;
+} catch (e) { }
 var dbSearch = '';
 var dbFilter = 'all';
 var dbTab = 'event';   // 'event' | 'toolbox' | 'food'
@@ -340,6 +346,8 @@ function go(tab, param) {
   route.tab = tab;
   route.eventId = tab === 'eventDetail' ? param : null;
   route.lead = tab === 'leadDetail' ? param : null;
+  /* CHANGED: save the current page so refresh returns here */
+  try { localStorage.setItem('cci-route', JSON.stringify(route)); } catch (e) { }
   render();
   window.scrollTo(0, 0);
 }
@@ -1437,22 +1445,48 @@ function openMenu() {
   openModal(html);
 }
 
-/* CHANGED: activity log viewer — admin only, shows the latest 100 actions */
+/* CHANGED: activity log viewer — admin only, with checkboxes to select
+   and delete specific entries, plus select-all and clear-all */
 function openActivityLog() {
   var logs = db.logs || [];
   var html = '<h3>📜 Activity Log</h3>' +
-    '<div class="hint" style="margin-bottom:10px">Who did what, and when. Latest ' + Math.min(logs.length, 100) + ' of ' + logs.length + ' recorded action(s).</div>' +
-    (!logs.length
-      ? '<div class="empty">No activity recorded yet. Actions will appear here from now on.</div>'
-      : logs.slice(0, 100).map(function (L) {
-          return '<div class="card" style="padding:10px">' +
-            '<div class="item-meta">🕒 ' + esc(L.at) + ' · 👤 <b>' + esc(L.by) + '</b></div>' +
-            '<div style="margin-top:2px">' + esc(L.text) + '</div>' +
-            '</div>';
-        }).join('')) +
-    /* CHANGED: admin can clear the log when it gets too long */
-    (logs.length ? '<div class="btn-row"><button class="btn btn-danger btn-block" onclick="clearActivityLog()">🧹 Clear Log</button></div>' : '');
+    '<div class="hint" style="margin-bottom:10px">Who did what, and when. Latest ' + Math.min(logs.length, 100) + ' of ' + logs.length + ' recorded action(s).</div>';
+  if (!logs.length) {
+    html += '<div class="empty">No activity recorded yet. Actions will appear here from now on.</div>';
+  } else {
+    html += '<label style="display:flex;align-items:center;gap:9px;padding:6px 4px 10px;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer">' +
+      '<input type="checkbox" onchange="toggleAllLogs(this.checked)" style="width:17px;height:17px;accent-color:#1a7f5a"> Select all</label>';
+    html += logs.slice(0, 100).map(function (L) {
+      return '<div class="card" style="padding:10px"><div class="row">' +
+        '<input type="checkbox" class="logSel" value="' + esc(L.id) + '" style="width:17px;height:17px;flex-shrink:0;accent-color:#1a7f5a">' +
+        '<div class="grow">' +
+        '<div class="item-meta">🕒 ' + esc(L.at) + ' · 👤 <b>' + esc(L.by) + '</b></div>' +
+        '<div style="margin-top:2px">' + esc(L.text) + '</div>' +
+        '</div></div></div>';
+    }).join('');
+    html += '<div class="btn-row">' +
+      '<button class="btn btn-danger" onclick="deleteSelectedLogs()">🗑️ Delete Selected</button>' +
+      '<button class="btn" onclick="clearActivityLog()">🧹 Clear All</button>' +
+      '</div>';
+  }
   openModal(html);
+}
+
+function toggleAllLogs(checked) {
+  document.querySelectorAll('.logSel').forEach(function (c) { c.checked = checked; });
+}
+
+function deleteSelectedLogs() {
+  if (!isAdmin()) return;
+  var ids = [];
+  document.querySelectorAll('.logSel:checked').forEach(function (c) { ids.push(c.value); });
+  if (!ids.length) { alert('Select at least one entry to delete (tap the checkboxes first).'); return; }
+  if (!confirm('Delete ' + ids.length + ' selected log entr' + (ids.length > 1 ? 'ies' : 'y') + '? This cannot be undone.')) return;
+  db.logs = (db.logs || []).filter(function (L) { return ids.indexOf(L.id) < 0; });
+  logAction('🗑️ Deleted ' + ids.length + ' activity log entr' + (ids.length > 1 ? 'ies' : 'y'));
+  saveDB();
+  openActivityLog();
+  toast('🗑️ Deleted ' + ids.length + ' log entr' + (ids.length > 1 ? 'ies' : 'y'));
 }
 
 function clearActivityLog() {
