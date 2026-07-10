@@ -181,6 +181,7 @@ var dbSearch = '';
 var dbFilter = 'all';
 var dbTab = 'event';   // 'event' | 'toolbox' | 'food'
 var dbMaterialFilter = 'all';
+var foodCatFilter = 'all'; /* CHANGED: category filter for the Food tab */
 var photoTemp = null;
 var photoCallback = null;
 var pickerCallback = null;
@@ -1310,9 +1311,18 @@ function isLow(it) { return it.reorderPoint > 0 && (it.stock || 0) <= it.reorder
    TAB: FOOD
    ============================================================ */
 function renderFood() {
-  var foods = db.items.filter(function (it) { return it.category === 'food'; });
-  foods.sort(byName);
-  var lowCount = foods.filter(isLow).length;
+  var allFoods = db.items.filter(function (it) { return it.category === 'food'; });
+  var lowCount = allFoods.filter(isLow).length;
+  /* CHANGED: category chips filter the list, and low-stock items always
+     appear at the top so reorders are seen right away */
+  var foods = allFoods.filter(function (it) {
+    return foodCatFilter === 'all' || (it.material || '') === foodCatFilter;
+  });
+  foods.sort(function (a, b) {
+    var la = isLow(a) ? 0 : 1, lb = isLow(b) ? 0 : 1;
+    if (la !== lb) return la - lb;
+    return (a.name || '').localeCompare(b.name || '');
+  });
 
   var month = today().slice(0, 7);
   var boughtMonth = 0;
@@ -1332,8 +1342,19 @@ function renderFood() {
     '</div>';
   if (lowCount) html += '<div class="notice red">' + lowCount + ' food item(s) low on stock.</div>';
 
+  /* CHANGED: category chips (same categories as the Database Food tab) */
+  var foodMats = getMaterials('food');
+  if (foodMats.length) {
+    html += '<div class="chips">' +
+      '<button class="chip' + (foodCatFilter === 'all' ? ' active' : '') + '" onclick="foodCatFilter=\'all\';render()">All</button>' +
+      foodMats.map(function (m) {
+        return '<button class="chip' + (foodCatFilter === m ? ' active' : '') + '" onclick="foodCatFilter=\'' + esc(m) + '\';render()">' + esc(m) + '</button>';
+      }).join('') +
+      '</div>';
+  }
+
   html += '<div class="section-title">Storage Levels</div>';
-  if (!foods.length) html += '<div class="empty">No food items yet. Add one in the Database tab.</div>';
+  if (!foods.length) html += '<div class="empty">' + (foodCatFilter === 'all' ? 'No food items yet. Add one in the Database tab.' : 'No food items in this category.') + '</div>';
   foods.forEach(function (it) {
     var low = isLow(it);
     html += '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
