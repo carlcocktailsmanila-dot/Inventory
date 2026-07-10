@@ -437,7 +437,7 @@ function renderDatabase() {
   }
 
   html += '<div id="dbList">' + dbListHTML(dbTabItems(dbTab)) + '</div>';
-  html += '<button onclick="openItemForm(null,\'' + dbTab + '\')" title="Add Item to ' + dbTabLabel(dbTab) + '" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
+  html += '<button onclick="openItemForm(null,\'' + dbTab + '\')" title="Add Item to ' + dbTabLabel(dbTab) + '" style="position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:80;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
   return html;
 }
 
@@ -633,7 +633,7 @@ function renderEvents() {
      so the search box keeps focus and the keyboard stays open while typing */
   var html = '<input class="search" placeholder="🔍 Search by event, lead, or venue…" value="' + esc(eventSearch) + '" oninput="eventSearch=this.value;refreshEventList()">';
   html += '<div id="eventList">' + eventListHTML() + '</div>';
-  html += '<button onclick="openEventForm()" title="New Event" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
+  html += '<button onclick="openEventForm()" title="New Event" style="position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:80;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
   return html;
 }
 
@@ -1146,7 +1146,7 @@ function renderFood() {
   });
   if (order.length > 15) html += '<div class="hint" style="text-align:center">…and ' + (order.length - 15) + ' more</div>';
 
-  html += '<button onclick="openDeliveryForm()" title="New Delivery (Weekly Stock)" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
+  html += '<button onclick="openDeliveryForm()" title="New Delivery (Weekly Stock)" style="position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:80;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
   return html;
 }
 
