@@ -849,8 +849,18 @@ function eventListHTML() {
            (ev.lead || '').toLowerCase().indexOf(q) >= 0 ||
            (ev.venue || '').toLowerCase().indexOf(q) >= 0;
   };
-  var open = db.events.filter(function (e) { return e.status === 'open' && matches(e); });
-  var closed = db.events.filter(function (e) { return e.status === 'closed' && matches(e); });
+  /* CHANGED: staff only see events where they are the lead or the checker.
+     Admin sees everything. */
+  var pool = db.events;
+  if (!isAdmin()) {
+    var myKey = currentUserName().toLowerCase();
+    pool = pool.filter(function (ev) {
+      return (ev.lead || '').trim().toLowerCase() === myKey ||
+             (ev.checker || '').trim().toLowerCase() === myKey;
+    });
+  }
+  var open = pool.filter(function (e) { return e.status === 'open' && matches(e); });
+  var closed = pool.filter(function (e) { return e.status === 'closed' && matches(e); });
   closed.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
   /* CHANGED: open events are now split into "Today & Upcoming" (soonest first)
@@ -944,6 +954,15 @@ function saveEventForm(id) {
 function renderEventDetail(id) {
   var ev = getEvent(id);
   if (!ev) return '<div class="empty">Event not found.</div>';
+  /* CHANGED: staff can only open events where they are the lead or the checker */
+  if (!isAdmin()) {
+    var myKey = currentUserName().toLowerCase();
+    if ((ev.lead || '').trim().toLowerCase() !== myKey &&
+        (ev.checker || '').trim().toLowerCase() !== myKey) {
+      return '<button class="back-btn" onclick="go(\'events\')">← Back to Events</button>' +
+        '<div class="empty">You can only view events where you are the lead or the checker.</div>';
+    }
+  }
   var closed = ev.status === 'closed';
   var pend = eventPending(ev);
   var issues = eventIssues(ev);
