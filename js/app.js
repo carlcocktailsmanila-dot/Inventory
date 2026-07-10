@@ -370,7 +370,7 @@ function go(tab, param) {
   window.scrollTo(0, 0);
 }
 
-function goHomeOrEvents() { go(isAdmin() ? 'home' : 'events'); }
+function goHomeOrEvents() { go('home'); }
 
 function render() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
@@ -378,23 +378,23 @@ function render() {
   if (nav) nav.style.display = '';
   var menuBtn = document.querySelector('.icon-btn');
   if (menuBtn) menuBtn.style.display = '';
-  /* CHANGED: role-based access — staff (non-admin) can use Events + Leads tabs only.
-     Leads is view-only for them (delete buttons are already admin-only). */
+  /* CHANGED: staff (non-admin) can use Home + Events + Leads tabs.
+     Home shows their personal dashboard; Leads stays view-only. */
   var admin = isAdmin();
-  var staffTabs = ['events', 'eventDetail', 'leads', 'leadDetail'];
+  var staffTabs = ['home', 'events', 'eventDetail', 'leads', 'leadDetail'];
   if (!admin && staffTabs.indexOf(route.tab) < 0) {
-    route.tab = 'events'; route.eventId = null; route.lead = null;
+    route.tab = 'home'; route.eventId = null; route.lead = null;
   }
   var navTab = route.tab;
   if (navTab === 'eventDetail') navTab = 'events';
   if (navTab === 'leadDetail') navTab = 'leads';
   document.querySelectorAll('.bottomnav button').forEach(function (b) {
     var t = b.getAttribute('data-tab');
-    b.style.display = (admin || t === 'events' || t === 'leads') ? '' : 'none';
+    b.style.display = (admin || t === 'home' || t === 'events' || t === 'leads') ? '' : 'none';
     b.classList.toggle('active', t === navTab);
   });
   var v = document.getElementById('view');
-  if (route.tab === 'home') v.innerHTML = renderHome();
+  if (route.tab === 'home') v.innerHTML = admin ? renderHome() : renderStaffHome();
   else if (route.tab === 'db') v.innerHTML = renderDatabase();
   else if (route.tab === 'events') v.innerHTML = renderEvents();
   else if (route.tab === 'eventDetail') v.innerHTML = renderEventDetail(route.eventId);
@@ -457,6 +457,66 @@ function renderHome() {
     html += '<div class="section-title">⚠️ Reorder Soon</div>';
     lowItems.sort(byName).slice(0, 5).forEach(function (it) { html += itemCard(it); });
   }
+
+  return html;
+}
+
+/* CHANGED: staff Home — a personal dashboard: my events today, items I still
+   need to return, and my damage record this month */
+function renderStaffHome() {
+  var h = new Date().getHours();
+  var greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  var td = today();
+  var myName = currentUserName();
+  var myKey = myName.toLowerCase();
+
+  var mine = db.events.filter(function (ev) {
+    return (ev.lead || '').trim().toLowerCase() === myKey;
+  });
+  var myOpen = mine.filter(function (e) { return e.status === 'open'; });
+  var todayEvents = myOpen.filter(function (e) { return e.date === td; });
+
+  var pendingEvents = [];
+  var pendTotal = 0;
+  myOpen.forEach(function (ev) {
+    var p = eventPending(ev);
+    if (p > 0) { pendingEvents.push(ev); pendTotal += p; }
+  });
+
+  var month = td.slice(0, 7);
+  var dmgCount = 0, dmgValue = 0;
+  mine.forEach(function (ev) {
+    if ((ev.date || '').slice(0, 7) === month) {
+      dmgCount += eventIssues(ev);
+      dmgValue += eventDamageValue(ev);
+    }
+  });
+
+  var html = '<div style="margin:6px 2px 4px">' +
+    '<div style="font-size:20px;font-weight:800">' + greet + ', ' + esc(myName) + '! 👋</div>' +
+    '<div class="hint">' + fmtDate(td) + ' · Here\'s your day at a glance.</div>' +
+    '</div>';
+
+  html += '<div class="tiles">' +
+    tile(String(todayEvents.length), 'My events today') +
+    tile(String(pendTotal), 'Items to return', pendTotal > 0 ? 'bad' : '') +
+    tile(String(dmgCount), 'Damaged/lost this month', dmgCount > 0 ? 'bad' : '') +
+    tile(money(dmgValue), 'Damage value', dmgValue > 0 ? 'bad' : '') +
+    '</div>';
+
+  if (pendTotal === 0 && dmgCount === 0) {
+    html += '<div class="notice green">✅ Cleared — no pending items or damages this month. Keep it up!</div>';
+  }
+
+  if (pendingEvents.length) {
+    html += '<div class="section-title">⚠️ Items to Return</div>';
+    pendingEvents.forEach(function (ev) { html += eventCard(ev); });
+  }
+
+  html += '<div class="section-title">📍 My Events Today</div>';
+  html += todayEvents.length ? todayEvents.map(eventCard).join('') : '<div class="empty">No events assigned to you today.</div>';
+
+  html += '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="openEventForm()">＋ New Event</button></div>';
 
   return html;
 }
@@ -1731,9 +1791,9 @@ if (fbAuth) {
   fbAuth.onAuthStateChanged(function (user) {
     if (user) {
       currentUser = user;
-      /* CHANGED: admins land on the Home dashboard on first login (no saved page) */
+      /* CHANGED: everyone lands on their Home dashboard on first login (no saved page) */
       try {
-        if (!localStorage.getItem('cci-route') && isAdmin()) route.tab = 'home';
+        if (!localStorage.getItem('cci-route')) route.tab = 'home';
       } catch (e) { }
       render();
       startCloudSync();
