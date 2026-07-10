@@ -265,10 +265,28 @@ function catLabel(it) {
   if (it.category === 'food') return 'Food';
   return it.disposable ? 'Toolbox · Disposable' : 'Toolbox · Returnable';
 }
+/* CHANGED: clean line icons (same style as the bottom nav) used inside the app */
+var SVG_ICONS = {
+  tent: '<path d="M12 4 3 20h18L12 4z"/><path d="M12 13l-3.5 7"/><path d="M12 13l3.5 7"/>',
+  box: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  bowl: '<path d="M4 12h16a8 8 0 0 1-8 8 8 8 0 0 1-8-8z"/><path d="M9 4c0 1.5 1 1.5 1 3"/><path d="M14 4c0 1.5 1 1.5 1 3"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>',
+  log: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 8 12 3 17 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'
+};
+
+function svgIcon(name, size) {
+  size = size || 18;
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:-3px">' + (SVG_ICONS[name] || '') + '</svg>';
+}
+
 function catIcon(it) {
-  if (it.category === 'event') return '🎪';
-  if (it.category === 'food') return '🍲';
-  return '🧰';
+  if (it.category === 'event') return svgIcon('tent', 22);
+  if (it.category === 'food') return svgIcon('bowl', 22);
+  return svgIcon('box', 22);
 }
 function isConsumable(it) {
   return it.category === 'food' || (it.category === 'toolbox' && it.disposable);
@@ -1281,7 +1299,7 @@ function leadListHTML() {
       (L.pending > 0 ? '<span class="badge b-red">⚠️ ' + L.pending + ' not returned</span>' : '') +
       (L.issues > 0 ? ' <span class="badge b-amber">' + L.issues + ' damaged/lost · ' + money(L.damageValue) + '</span>' : '');
     html += '<div class="card tappable" onclick="go(\'leadDetail\',window._leadNames[' + i + '])">' +
-      '<div class="row"><div class="thumb">👤</div>' +
+      '<div class="row"><div class="thumb">' + svgIcon('user', 22) + '</div>' +
       '<div class="grow"><div class="item-name">' + esc(name) + '</div>' +
       '<div class="item-meta">' + L.events + ' event' + (L.events > 1 ? 's' : '') + (L.open ? ' · ' + L.open + ' still open' : '') + '</div>' +
       '<div style="margin-top:4px">' + badge + '</div></div>' +
@@ -1301,7 +1319,7 @@ function renderLeadDetail(name) {
   evs.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
   window._leadDetailName = name;
   var html = '<button class="back-btn" onclick="go(\'leads\')">← Back to Leads</button>';
-  html += '<div class="card"><div class="row"><div class="thumb">👤</div><div class="grow">' +
+  html += '<div class="card"><div class="row"><div class="thumb">' + svgIcon('user', 22) + '</div><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
     '<div class="item-meta">' + evs.length + ' event record(s)</div></div>' +
     /* CHANGED: admin can rename a lead — updates the name on all their events */
@@ -1436,12 +1454,12 @@ function openMenu() {
     (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b> · ' + (isAdmin() ? '👑 Admin' : '🎪 Event Staff') + '</div>' : '') +
     /* CHANGED: admin-only backup tools */
     (isAdmin()
-      ? '<button class="menu-item" onclick="openActivityLog()">📜 Activity Log</button>' +
-        '<button class="menu-item" onclick="exportData()">💾 Export Backup (download data)</button>' +
-        '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">📥 Import Backup (restore data)</button>'
+      ? '<button class="menu-item" onclick="openActivityLog()">' + svgIcon('log') + ' Activity Log</button>' +
+        '<button class="menu-item" onclick="exportData()">' + svgIcon('download') + ' Export Backup (download data)</button>' +
+        '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">' + svgIcon('upload') + ' Import Backup (restore data)</button>'
       : '') +
-    '<button class="menu-item" onclick="openChangePassword()">🔑 Change Password</button>' +
-    '<button class="menu-item" onclick="doLogout()">🚪 Sign out</button>';
+    '<button class="menu-item" onclick="openChangePassword()">' + svgIcon('lock') + ' Change Password</button>' +
+    '<button class="menu-item" onclick="doLogout()">' + svgIcon('logout') + ' Sign out</button>';
   openModal(html);
 }
 
