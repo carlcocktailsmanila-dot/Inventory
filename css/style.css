@@ -108,10 +108,17 @@ main {
   cursor: pointer;
 }
 .bottomnav button span {
-  font-size: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
   padding: 4px 14px;
   border-radius: 999px;
+}
+.bottomnav button span svg {
+  width: 21px;
+  height: 21px;
+  display: block;
 }
 .bottomnav button.active { color: var(--green-dark); }
 .bottomnav button.active span { background: var(--green-soft); }
