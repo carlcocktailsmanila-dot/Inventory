@@ -1756,7 +1756,7 @@ function clearActivityLog() {
 function openSetUsername() {
   var html = '<h3>Set Username</h3>' +
     '<div class="hint" style="margin-bottom:10px">Create a short username so you can sign in without typing your full email. 3-20 characters: letters, numbers, dots, or underscores.</div>' +
-    '<div class="field"><label>Username</label><input id="su_name" autocapitalize="none" placeholder="e.g. carlmalom.cm"></div>' +
+    '<div class="field"><label>Username</label><input id="su_name" autocapitalize="none" placeholder="e.g. carlmalon.cm"></div>' +
     '<div id="su_current" class="hint" style="margin-bottom:10px">Checking current username…</div>' +
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveUsername()">Save Username</button></div>';
   openModal(html);
