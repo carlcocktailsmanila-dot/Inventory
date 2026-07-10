@@ -1752,25 +1752,28 @@ function clearActivityLog() {
   toast('Activity log cleared');
 }
 /* CHANGED: username system — a short username maps to the account email so
-   signing in doesn't require typing the full email address */
+   signing in doesn't require typing the full email address.
+   Usernames can only be set ONCE; the admin can reset via Firestore console. */
 function openSetUsername() {
-  var html = '<h3>Set Username</h3>' +
-    '<div class="hint" style="margin-bottom:10px">Create a short username so you can sign in without typing your full email. 3-20 characters: letters, numbers, dots, or underscores.</div>' +
-    '<div class="field"><label>Username</label><input id="su_name" autocapitalize="none" placeholder="e.g. carlmalon.cm"></div>' +
-    '<div id="su_current" class="hint" style="margin-bottom:10px">Checking current username…</div>' +
-    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveUsername()">Save Username</button></div>';
-  openModal(html);
-  if (fsDB && currentUser) {
-    fsDB.collection('usernames').where('email', '==', currentUser.email.toLowerCase()).get().then(function (qs) {
-      var el = document.getElementById('su_current');
-      if (!el) return;
-      if (qs.empty) el.textContent = 'You have no username yet.';
-      else el.innerHTML = 'Current username: <b>' + esc(qs.docs[0].id) + '</b>';
-    }).catch(function () {
-      var el = document.getElementById('su_current');
-      if (el) el.textContent = '';
-    });
-  }
+  openModal('<h3>Set Username</h3><div id="su_body"><div class="hint">Checking…</div></div>');
+  if (!fsDB || !currentUser) return;
+  fsDB.collection('usernames').where('email', '==', currentUser.email.toLowerCase()).get().then(function (qs) {
+    var el = document.getElementById('su_body');
+    if (!el) return;
+    if (!qs.empty) {
+      el.innerHTML =
+        '<div class="notice green">You already set your username: <b>' + esc(qs.docs[0].id) + '</b></div>' +
+        '<div class="hint">Usernames can only be set once. If you really need to change it, contact the admin.</div>';
+    } else {
+      el.innerHTML =
+        '<div class="hint" style="margin-bottom:10px">Create a short username so you can sign in without typing your full email. 3-20 characters: letters, numbers, dots, or underscores. <b>You can only set this once</b>, so choose carefully.</div>' +
+        '<div class="field"><label>Username</label><input id="su_name" autocapitalize="none" placeholder="e.g. carlmalom.cm"></div>' +
+        '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveUsername()">Save Username</button></div>';
+    }
+  }).catch(function () {
+    var el = document.getElementById('su_body');
+    if (el) el.innerHTML = '<div class="hint">Could not check your username right now. Please try again.</div>';
+  });
 }
 
 function saveUsername() {
@@ -1780,22 +1783,24 @@ function saveUsername() {
     return;
   }
   var myEmail = currentUser.email.toLowerCase();
-  fsDB.collection('usernames').doc(uname).get().then(function (snap) {
-    if (snap.exists && (snap.data().email || '').toLowerCase() !== myEmail) {
-      alert('That username is already taken. Try another one.');
+  /* one-time only: block if this account already has a username */
+  fsDB.collection('usernames').where('email', '==', myEmail).get().then(function (qs) {
+    if (!qs.empty) {
+      alert('You already set your username (' + qs.docs[0].id + '). Usernames can only be set once — contact the admin if you need to change it.');
+      closeModal();
       return;
     }
-    return fsDB.collection('usernames').where('email', '==', myEmail).get().then(function (qs) {
-      var deletes = [];
-      qs.forEach(function (d) { if (d.id !== uname) deletes.push(d.ref.delete()); });
-      return Promise.all(deletes);
-    }).then(function () {
-      return fsDB.collection('usernames').doc(uname).set({ email: myEmail });
-    }).then(function () {
-      logAction('Set username: ' + uname);
-      saveDB();
-      closeModal();
-      toast('Username saved: ' + uname + ' — you can now use it to sign in');
+    return fsDB.collection('usernames').doc(uname).get().then(function (snap) {
+      if (snap.exists) {
+        alert('That username is already taken. Try another one.');
+        return;
+      }
+      return fsDB.collection('usernames').doc(uname).set({ email: myEmail }).then(function () {
+        logAction('Set username: ' + uname);
+        saveDB();
+        closeModal();
+        toast('Username saved: ' + uname + ' — you can now use it to sign in');
+      });
     });
   }).catch(function (err) {
     console.error('Username save error', err);
