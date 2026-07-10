@@ -427,6 +427,9 @@ function render() {
     b.style.display = (admin || t === 'home' || t === 'events' || t === 'leads') ? '' : 'none';
     b.classList.toggle('active', t === navTab);
   });
+  /* CHANGED: the Records tab is "My Records" for staff, "Records" for admin */
+  var leadsLbl = document.getElementById('leadsTabLabel');
+  if (leadsLbl) leadsLbl.textContent = admin ? 'Records' : 'My Records';
   var v = document.getElementById('view');
   if (route.tab === 'home') v.innerHTML = admin ? renderHome() : renderStaffHome();
   else if (route.tab === 'db') v.innerHTML = renderDatabase();
@@ -1535,7 +1538,7 @@ function myLeadName() {
 function renderLeadDetail(name) {
   /* CHANGED: staff can only open their own lead record */
   if (!isAdmin() && (name || '').toLowerCase() !== currentUserName().toLowerCase()) {
-    return '<button class="back-btn" onclick="go(\'leads\')">← Back to Leads</button>' +
+    return '<button class="back-btn" onclick="go(\'leads\')">← Back to Records</button>' +
       '<div class="empty">You can only view your own lead record.</div>';
   }
   var evs = db.events.filter(function (ev) {
@@ -1545,7 +1548,7 @@ function renderLeadDetail(name) {
   window._leadDetailName = name;
   var total = evs.length;
   /* CHANGED: back button is admin-only — for staff, the Leads tab IS this page */
-  var html = isAdmin() ? '<button class="back-btn" onclick="go(\'leads\')">← Back to Leads</button>' : '';
+  var html = isAdmin() ? '<button class="back-btn" onclick="go(\'leads\')">← Back to Records</button>' : '';
   html += '<div class="card"><div class="row"><div class="thumb">' + svgIcon('user', 22) + '</div><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
     '<div class="item-meta">' + total + ' event record(s)</div></div>' +
