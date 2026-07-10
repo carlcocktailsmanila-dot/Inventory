@@ -285,7 +285,10 @@ var SVG_ICONS = {
   lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
   edit: '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
-  camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'
+  camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>'
 };
 
 function svgIcon(name, size) {
@@ -876,7 +879,7 @@ function eventCard(ev) {
   return '<div class="card tappable" onclick="go(\'eventDetail\',\'' + ev.id + '\')">' +
     '<div class="row"><div class="grow">' +
       '<div class="item-name">' + esc(ev.name) + '</div>' +
-      '<div class="item-meta">' + fmtDate(ev.date) + (ev.venue ? ' · ' + esc(ev.venue) : '') + '</div>' +
+      '<div class="item-meta">Date: ' + fmtDate(ev.date) + (ev.venue ? ' · Venue: ' + esc(ev.venue) : '') + '</div>' +
       '<div class="item-meta">Lead: ' + esc(ev.lead || '—') + ' · Checker: ' + esc(ev.checker || '—') + '</div>' +
     '</div></div>' +
     '<div style="margin-top:8px">' + badge + '</div>' +
@@ -927,7 +930,7 @@ function renderEventDetail(id) {
   var html = '<button class="back-btn" onclick="go(\'events\')">← Back to Events</button>';
   html += '<div class="card"><div class="row"><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(ev.name) + '</div>' +
-    '<div class="item-meta">' + fmtDate(ev.date) + (ev.venue ? ' · ' + esc(ev.venue) : '') + '</div>' +
+    '<div class="item-meta">Date: ' + fmtDate(ev.date) + (ev.venue ? ' · Venue: ' + esc(ev.venue) : '') + '</div>' +
     '<div class="item-meta">Lead: <b>' + esc(ev.lead || '—') + '</b> · Checker: <b>' + esc(ev.checker || '—') + '</b></div>' +
     '</div>' +
     (!closed ? (canEditRecord(ev.ts) ? '<button class="btn btn-sm" onclick="openEventForm(\'' + ev.id + '\')">' + svgIcon('edit', 14) + '</button>' : '') : '<span class="badge b-gray">CLOSED</span>') +
@@ -1322,7 +1325,7 @@ function renderFood() {
     }).join('');
     html += '<div class="card">' +
       '<div class="row"><div class="grow">' +
-      '<div class="item-name">' + fmtDate(first.date) + (first.supplier ? ' · ' + esc(first.supplier) : '') + '</div>' +
+      '<div class="item-name">Date: ' + fmtDate(first.date) + (first.supplier ? ' · Supplier: ' + esc(first.supplier) : '') + '</div>' +
       '<div class="item-meta">Checker: ' + esc(first.checker || '—') + '</div></div>' +
       '<div><div class="stat-num">' + money(total) + '</div><div class="stat-label">total</div></div></div>' +
       '<div style="margin-top:8px">' + linesHtml + '</div>' +
@@ -1500,16 +1503,44 @@ function renderLeadDetail(name) {
   });
   evs.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
   window._leadDetailName = name;
+  var total = evs.length;
   /* CHANGED: back button is admin-only — for staff, the Leads tab IS this page */
   var html = isAdmin() ? '<button class="back-btn" onclick="go(\'leads\')">← Back to Leads</button>' : '';
   html += '<div class="card"><div class="row"><div class="thumb">' + svgIcon('user', 22) + '</div><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
-    '<div class="item-meta">' + evs.length + ' event record(s)</div></div>' +
+    '<div class="item-meta">' + total + ' event record(s)</div></div>' +
     /* CHANGED: admin can rename a lead — updates the name on all their events */
     (isAdmin() ? '<button class="btn btn-sm" onclick="openRenameLead(window._leadDetailName)">' + svgIcon('edit', 13) + ' Rename</button>' : '') +
     '</div></div>';
-  evs.forEach(function (ev) { html += eventCard(ev); });
+  /* CHANGED: searchable event list so a specific event can be found quickly */
+  html += '<input class="search" placeholder="Search event, venue, or date…" value="' + esc(leadDetailSearch) + '" oninput="leadDetailSearch=this.value;refreshLeadEvents()">';
+  html += '<div id="leadEventList">' + leadEventsHTML(name) + '</div>';
   return html;
+}
+
+var leadDetailSearch = '';
+
+function leadEventsHTML(name) {
+  var q = leadDetailSearch.trim().toLowerCase();
+  var evs = db.events.filter(function (ev) {
+    return ((ev.lead || '').trim() || '(no lead)') === name;
+  });
+  evs.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+  if (q) {
+    evs = evs.filter(function (ev) {
+      return (ev.name || '').toLowerCase().indexOf(q) >= 0 ||
+             (ev.venue || '').toLowerCase().indexOf(q) >= 0 ||
+             (ev.date || '').indexOf(q) >= 0 ||
+             fmtDate(ev.date).toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  if (!evs.length) return '<div class="empty">' + (q ? 'No matching events.' : 'No event records yet.') + '</div>';
+  return evs.map(eventCard).join('');
+}
+
+function refreshLeadEvents() {
+  var el = document.getElementById('leadEventList');
+  if (el) el.innerHTML = leadEventsHTML(window._leadDetailName);
 }
 
 /* CHANGED: rename a lead across all of their event records (admin only) */
