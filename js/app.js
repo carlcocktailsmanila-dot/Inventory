@@ -516,8 +516,6 @@ function renderStaffHome() {
   html += '<div class="section-title">📍 My Events Today</div>';
   html += todayEvents.length ? todayEvents.map(eventCard).join('') : '<div class="empty">No events assigned to you today.</div>';
 
-  html += '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="openEventForm()">＋ New Event</button></div>';
-
   return html;
 }
 
@@ -1602,7 +1600,7 @@ function openActivityLog() {
         '<div style="margin-top:2px">' + esc(L.text) + '</div>' +
         '</div></div></div>';
     }).join('');
-    html += '<div class="btn-row">' +
+    html += '<div class="btn-row" style="position:sticky;bottom:-18px;background:#fff;padding:12px 0 18px;margin-bottom:-18px;border-top:1px solid var(--line)">' +
       '<button class="btn btn-danger" onclick="deleteSelectedLogs()">🗑️ Delete Selected</button>' +
       '<button class="btn" onclick="clearActivityLog()">🧹 Clear All</button>' +
       '</div>';
