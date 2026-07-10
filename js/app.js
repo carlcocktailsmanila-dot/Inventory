@@ -85,10 +85,10 @@ function togglePasswordView() {
   var btn = event.target;
   if (input.type === 'password') {
     input.type = 'text';
-    btn.textContent = '🙈 Hide';
+    btn.textContent = 'Hide';
   } else {
     input.type = 'password';
-    btn.textContent = '👁️ Show';
+    btn.textContent = 'Show';
   }
 }
 function doLogin() {
@@ -139,11 +139,11 @@ function renderLoginScreen() {
         '<div class="field"><label>Password</label>' +
           '<div style="position:relative">' +
             '<input id="login_pass" type="password" placeholder="Password" style="padding-right:60px">' +
-            '<button type="button" onclick="togglePasswordView()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#1a7f5a;font-size:13px;cursor:pointer;padding:4px">👁️ Show</button>' +
+            '<button type="button" onclick="togglePasswordView()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#1a7f5a;font-size:13px;cursor:pointer;padding:4px">Show</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
-    '<button class="btn btn-primary" onclick="doLogin()">🔐 Sign In</button>' +
+    '<button class="btn btn-primary" onclick="doLogin()">Sign In</button>' +
     '<div class="hint" style="margin-top:12px">No account or forgot your password? Contact the admin.</div>' +
     '</div>';
 }
@@ -184,7 +184,7 @@ function saveDB() {
   if (CLOUD_DOC) {
     CLOUD_DOC.set(db).catch(function (e) {
       console.error('Cloud save error', e);
-      toast('⚠️ No internet — not synced to other devices.');
+      toast('No internet — not synced to other devices.');
     });
   } else {
     alert('Could not save! Device storage may be full. Export a backup and delete old photos.');
@@ -283,7 +283,9 @@ var SVG_ICONS = {
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
   upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 8 12 3 17 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
   lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
-  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+  edit: '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
+  camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'
 };
 
 function svgIcon(name, size) {
@@ -446,7 +448,7 @@ function renderHome() {
   });
 
   var html = '<div style="margin:6px 2px 4px">' +
-    '<div style="font-size:20px;font-weight:800">' + greet + ', ' + esc(currentUserName()) + '! 👋</div>' +
+    '<div style="font-size:20px;font-weight:800">' + greet + ', ' + esc(currentUserName()) + '!</div>' +
     '<div class="hint">' + fmtDate(td) + ' · Here\'s how Cocktails Manila looks today.</div>' +
     '</div>';
 
@@ -458,11 +460,11 @@ function renderHome() {
     '</div>';
 
   if (pastOpenCount > 0) {
-    html += '<div class="notice amber">⏳ ' + pastOpenCount + ' event(s) past their date are still open — review and close them in the Events tab.</div>';
+    html += '<div class="notice amber">' + pastOpenCount + ' event(s) past their date are still open — review and close them in the Events tab.</div>';
   }
 
   if (lowItems.length) {
-    html += '<div class="section-title">⚠️ Reorder Soon</div>';
+    html += '<div class="section-title">Reorder Soon</div>';
     lowItems.sort(byName).slice(0, 5).forEach(function (it) { html += itemCard(it); });
   }
 
@@ -484,11 +486,9 @@ function renderStaffHome() {
   var myOpen = mine.filter(function (e) { return e.status === 'open'; });
   var todayEvents = myOpen.filter(function (e) { return e.date === td; });
 
-  var pendingEvents = [];
   var pendTotal = 0;
   myOpen.forEach(function (ev) {
-    var p = eventPending(ev);
-    if (p > 0) { pendingEvents.push(ev); pendTotal += p; }
+    pendTotal += eventPending(ev);
   });
 
   var month = td.slice(0, 7);
@@ -501,7 +501,7 @@ function renderStaffHome() {
   });
 
   var html = '<div style="margin:6px 2px 4px">' +
-    '<div style="font-size:20px;font-weight:800">' + greet + ', ' + esc(myName) + '! 👋</div>' +
+    '<div style="font-size:20px;font-weight:800">' + greet + ', ' + esc(myName) + '!</div>' +
     '<div class="hint">' + fmtDate(td) + ' · Here\'s your day at a glance.</div>' +
     '</div>';
 
@@ -513,20 +513,15 @@ function renderStaffHome() {
     '</div>';
 
   if (pendTotal === 0 && dmgCount === 0) {
-    html += '<div class="notice green">✅ Cleared — no pending items or damages this month. Keep it up!</div>';
+    html += '<div class="notice green">Cleared — no pending items or damages this month. Keep it up!</div>';
   }
 
-  if (pendingEvents.length) {
-    html += '<div class="section-title">⚠️ Items to Return</div>';
-    pendingEvents.forEach(function (ev) { html += eventCard(ev); });
-  }
-
-  html += '<div class="section-title">📍 My Events Today</div>';
+  html += '<div class="section-title">My Events Today</div>';
   html += todayEvents.length ? todayEvents.map(eventCard).join('') : '<div class="empty">No events assigned to you today.</div>';
 
   /* CHANGED: staff can see and search their own past events */
-  html += '<div class="section-title">📜 My Past Events</div>';
-  html += '<input class="search" placeholder="🔍 Search my events…" value="' + esc(staffHomeSearch) + '" oninput="staffHomeSearch=this.value;refreshMyEvents()">';
+  html += '<div class="section-title">My Past Events</div>';
+  html += '<input class="search" placeholder="Search my events…" value="' + esc(staffHomeSearch) + '" oninput="staffHomeSearch=this.value;refreshMyEvents()">';
   html += '<div id="myEventList">' + myEventsListHTML() + '</div>';
 
   return html;
@@ -601,10 +596,10 @@ function renderDatabase() {
       '" style="flex:1" onclick="dbTab=\'' + t + '\';dbFilter=\'all\';dbMaterialFilter=\'all\';render()">' + dbTabLabel(t) + '</button>';
   }).join('') + '</div>';
 
-  html += '<input class="search" placeholder="🔍 Search for an item…" value="' + esc(dbSearch) + '" oninput="dbSearch=this.value;refreshDbList()">';
+  html += '<input class="search" placeholder="Search for an item…" value="' + esc(dbSearch) + '" oninput="dbSearch=this.value;refreshDbList()">';
 
   if (dbTab === 'toolbox') {
-    var subChips = [['all', 'All'], ['toolbox-n', '🧰 Returnable'], ['toolbox-d', '🧰 Disposable']];
+    var subChips = [['all', 'All'], ['toolbox-n', 'Returnable'], ['toolbox-d', 'Disposable']];
     html += '<div class="chips">' + subChips.map(function (c) {
       return '<button class="chip' + (dbFilter === c[0] ? ' active' : '') + '" onclick="dbFilter=\'' + c[0] + '\';render()">' + c[1] + '</button>';
     }).join('') + '</div>';
@@ -646,7 +641,7 @@ function itemCard(it) {
   var right;
   if (isConsumable(it)) {
     right = '<div class="stat-num" style="' + (low ? 'color:var(--red)' : '') + '">' + avail + ' ' + esc(it.unit) + '</div>' +
-            '<div class="stat-label">' + (low ? '⚠️ Reorder now!' : 'stock') + '</div>';
+            '<div class="stat-label">' + (low ? 'Reorder now!' : 'stock') + '</div>';
   } else {
     /* CHANGED: show avail vs ORIGINAL owned (e.g. 18/20), and mark Incomplete in red if may damaged/lost */
     var dl = totalDamagedLost(it.id);
@@ -695,19 +690,19 @@ function openItemForm(id, presetTab) {
   var catOptions;
   if (toolboxOnly) {
     catOptions =
-      opt('toolbox-n', '🧰 Returnable (serving)', true) +
-      opt('toolbox-d', '🧰 Disposable (runs out)', false);
+      opt('toolbox-n', 'Returnable (serving)', true) +
+      opt('toolbox-d', 'Disposable (runs out)', false);
   } else {
     catOptions =
-      opt('event', '🎪 Event Item (returnable)', it ? it.category === 'event' : presetCat === 'event') +
-      opt('toolbox-n', '🧰 Toolbox — Returnable (serving)', it ? (it.category === 'toolbox' && !it.disposable) : presetCat === 'toolbox-n') +
-      opt('toolbox-d', '🧰 Toolbox — Disposable (runs out)', it ? (it.category === 'toolbox' && it.disposable) : false) +
-      opt('food', '🍲 Food / Storage', it ? it.category === 'food' : presetCat === 'food');
+      opt('event', 'Event Item (returnable)', it ? it.category === 'event' : presetCat === 'event') +
+      opt('toolbox-n', 'Toolbox — Returnable (serving)', it ? (it.category === 'toolbox' && !it.disposable) : presetCat === 'toolbox-n') +
+      opt('toolbox-d', 'Toolbox — Disposable (runs out)', it ? (it.category === 'toolbox' && it.disposable) : false) +
+      opt('food', 'Food / Storage', it ? it.category === 'food' : presetCat === 'food');
   }
   var html = '<h3>' + (it ? 'Edit Item' : 'New Item') + '</h3>' +
     '<div class="photo-box" onclick="capturePhoto(function(d){photoTemp=d;refreshFormPhoto()})">' +
       '<div id="formPhoto">' + formPhotoHTML() + '</div>' +
-      '<div class="photo-hint">📷 ' + (photoTemp ? 'Change' : 'Take a photo') + '</div>' +
+      '<div class="photo-hint">' + (photoTemp ? 'Change' : 'Take a photo') + '</div>' +
     '</div>' +
     '<div class="field"><label>Item Name</label><input id="f_name" value="' + esc(it ? it.name : '') + '" placeholder="e.g. Chafing Dish"></div>' +
     /* CHANGED: hide the material/type text field for toolbox items — it's only used by Event Items and Food */
@@ -737,7 +732,7 @@ function opt(v, label, sel) { return '<option value="' + v + '"' + (sel ? ' sele
 
 function formPhotoHTML() {
   if (photoTemp) return '<img class="thumb-lg" src="' + photoTemp + '" alt="">';
-  return '<div class="thumb-lg">📷</div>';
+  return '<div class="thumb-lg">' + svgIcon('camera', 34) + '</div>';
 }
 function refreshFormPhoto() {
   var el = document.getElementById('formPhoto');
@@ -773,7 +768,7 @@ function saveItemForm(id) {
       PHOTOS[it.id] = photoTemp;
       if (fsDB) fsDB.collection('photos').doc(it.id).set({ data: photoTemp }).catch(function (e) {
         console.error('Photo save error', e);
-        toast('⚠️ Photo not synced — check internet.');
+        toast('Photo not synced — check internet.');
       });
     }
     it.hasPhoto = true;
@@ -784,9 +779,9 @@ function saveItemForm(id) {
     it.hasPhoto = false;
     it.photo = null;
   }
-  logAction((id ? '✏️ Edited item: ' : '➕ Added item: ') + name);
+  logAction((id ? 'Edited item: ' : '➕ Added item: ') + name);
   saveDB(); closeModal(); render();
-  toast('✅ Saved: ' + name);
+  toast('Saved: ' + name);
 }
 
 function deleteItem(id) {
@@ -804,9 +799,9 @@ function deleteItem(id) {
   /* CHANGED: also delete the item's photo from the photos collection */
   if (fsDB) fsDB.collection('photos').doc(id).delete().catch(function () {});
   delete PHOTOS[id];
-  logAction('🗑️ Deleted item: ' + it.name);
+  logAction('Deleted item: ' + it.name);
   saveDB(); closeModal(); render();
-  toast('🗑️ Deleted: ' + it.name);
+  toast('Deleted: ' + it.name);
 }
 
 /* ============================================================
@@ -817,7 +812,7 @@ var eventSearch = '';
 function renderEvents() {
   /* CHANGED: search now refreshes only the list (not the whole page),
      so the search box keeps focus and the keyboard stays open while typing */
-  var html = '<input class="search" placeholder="🔍 Search by event, lead, or venue…" value="' + esc(eventSearch) + '" oninput="eventSearch=this.value;refreshEventList()">';
+  var html = '<input class="search" placeholder="Search by event, lead, or venue…" value="' + esc(eventSearch) + '" oninput="eventSearch=this.value;refreshEventList()">';
   html += '<div id="eventList">' + eventListHTML() + '</div>';
   html += '<button onclick="openEventForm()" title="New Event" style="position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:80;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
   return html;
@@ -843,11 +838,11 @@ function eventListHTML() {
   var pastOpen = open.filter(function (e) { return (e.date || '') < td; })
     .sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
-  var html = '<div class="section-title">📅 Today & Upcoming (' + upcoming.length + ')</div>';
+  var html = '<div class="section-title">Today & Upcoming (' + upcoming.length + ')</div>';
   html += upcoming.length ? upcoming.map(eventCard).join('') : '<div class="empty">No upcoming events.</div>';
 
   if (pastOpen.length) {
-    html += '<div class="section-title">⏳ Still Open — past dates (' + pastOpen.length + ')</div>';
+    html += '<div class="section-title">Still Open — past dates (' + pastOpen.length + ')</div>';
     html += pastOpen.map(eventCard).join('');
   }
 
@@ -877,12 +872,12 @@ function eventCard(ev) {
   }
   /* CHANGED: peso value removed from event cards — values are shown inside
      the event detail instead. Damage/lost badges stay visible. */
-  if (ev.status === 'open' && ev.date === today()) badge = '<span class="badge b-green">📍 TODAY</span> ' + badge;
+  if (ev.status === 'open' && ev.date === today()) badge = '<span class="badge b-green">TODAY</span> ' + badge;
   return '<div class="card tappable" onclick="go(\'eventDetail\',\'' + ev.id + '\')">' +
     '<div class="row"><div class="grow">' +
       '<div class="item-name">' + esc(ev.name) + '</div>' +
-      '<div class="item-meta">📅 ' + fmtDate(ev.date) + (ev.venue ? ' · 📍 ' + esc(ev.venue) : '') + '</div>' +
-      '<div class="item-meta">👤 Lead: ' + esc(ev.lead || '—') + ' · ✔️ Checker: ' + esc(ev.checker || '—') + '</div>' +
+      '<div class="item-meta">' + fmtDate(ev.date) + (ev.venue ? ' · ' + esc(ev.venue) : '') + '</div>' +
+      '<div class="item-meta">Lead: ' + esc(ev.lead || '—') + ' · Checker: ' + esc(ev.checker || '—') + '</div>' +
     '</div></div>' +
     '<div style="margin-top:8px">' + badge + '</div>' +
     '</div>';
@@ -916,10 +911,10 @@ function saveEventForm(id) {
   ev.venue = document.getElementById('e_venue').value.trim();
   ev.lead = document.getElementById('e_lead').value.trim();
   ev.checker = document.getElementById('e_checker').value.trim();
-  logAction((isNew ? '➕ Created event: ' : '✏️ Edited event: ') + name);
+  logAction((isNew ? '➕ Created event: ' : 'Edited event: ') + name);
   saveDB(); closeModal();
   if (isNew) go('eventDetail', ev.id); else render();
-  toast('✅ Event saved');
+  toast('Event saved');
 }
 
 /* ---- event detail ---- */
@@ -932,19 +927,19 @@ function renderEventDetail(id) {
   var html = '<button class="back-btn" onclick="go(\'events\')">← Back to Events</button>';
   html += '<div class="card"><div class="row"><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(ev.name) + '</div>' +
-    '<div class="item-meta">📅 ' + fmtDate(ev.date) + (ev.venue ? ' · 📍 ' + esc(ev.venue) : '') + '</div>' +
-    '<div class="item-meta">👤 Lead: <b>' + esc(ev.lead || '—') + '</b> · ✔️ Checker: <b>' + esc(ev.checker || '—') + '</b></div>' +
+    '<div class="item-meta">' + fmtDate(ev.date) + (ev.venue ? ' · ' + esc(ev.venue) : '') + '</div>' +
+    '<div class="item-meta">Lead: <b>' + esc(ev.lead || '—') + '</b> · Checker: <b>' + esc(ev.checker || '—') + '</b></div>' +
     '</div>' +
-    (!closed ? (canEditRecord(ev.ts) ? '<button class="btn btn-sm" onclick="openEventForm(\'' + ev.id + '\')">✏️</button>' : '') : '<span class="badge b-gray">CLOSED</span>') +
+    (!closed ? (canEditRecord(ev.ts) ? '<button class="btn btn-sm" onclick="openEventForm(\'' + ev.id + '\')">' + svgIcon('edit', 14) + '</button>' : '') : '<span class="badge b-gray">CLOSED</span>') +
     '</div></div>';
-  if (!closed && pend > 0) html += '<div class="notice red">⚠️ ' + pend + ' item(s) not yet returned.</div>';
-  if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">✅ All items returned. This event can now be closed.</div>';
-  if (closed && issues > 0) html += '<div class="notice amber">⚠️ ' + issues + ' item(s) damaged or lost in this event (' + money(eventDamageValue(ev)) + ').</div>';
+  if (!closed && pend > 0) html += '<div class="notice red">' + pend + ' item(s) not yet returned.</div>';
+  if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">All items returned. This event can now be closed.</div>';
+  if (closed && issues > 0) html += '<div class="notice amber">' + issues + ' item(s) damaged or lost in this event (' + money(eventDamageValue(ev)) + ').</div>';
   html += '<div class="tiles">' +
     tile(money(eventValueOut(ev)), 'Value of items released') +
     tile(money(eventUsageCost(ev, 'food')), 'Food expenses') +
     '</div>';
-  html += '<div class="section-title">🎪 Items Released (returnable)</div>';
+  html += '<div class="section-title">Items Released (returnable)</div>';
   var lines = ev.lines || [];
   if (!lines.length) html += '<div class="empty">No items released yet.</div>';
   lines.forEach(function (l, idx) {
@@ -952,10 +947,10 @@ function renderEventDetail(id) {
     var name2 = it ? it.name : '(item deleted)';
     var p = linePending(l);
     html += '<div class="card">' +
-      '<div class="row">' + (it ? photoThumb(it) : '<div class="thumb">❓</div>') +
+      '<div class="row">' + (it ? photoThumb(it) : '<div class="thumb">?</div>') +
       '<div class="grow"><div class="item-name">' + esc(name2) + '</div>' +
-      (l.notes ? '<div class="item-meta">📝 ' + esc(l.notes) + '</div>' : '') + '</div>' +
-      (!closed ? (canEditRecord(l.ts) ? '<button class="btn btn-sm" style="margin-right:6px" onclick="openEditRelease(\'' + ev.id + '\',' + idx + ')" title="Edit released quantity">✏️</button>' : '') +
+      (l.notes ? '<div class="item-meta">' + esc(l.notes) + '</div>' : '') + '</div>' +
+      (!closed ? (canEditRecord(l.ts) ? '<button class="btn btn-sm" style="margin-right:6px" onclick="openEditRelease(\'' + ev.id + '\',' + idx + ')" title="Edit released quantity">' + svgIcon('edit', 14) + '</button>' : '') +
                  '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Return</button>' : '') +
       '</div>' +
       '<div class="line-grid">' +
@@ -967,23 +962,23 @@ function renderEventDetail(id) {
   });
   if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button></div>';
 
-  html += '<div class="section-title">🧰 Disposables Used</div>';
+  html += '<div class="section-title">Disposables Used</div>';
   html += usageList(ev, 'toolbox', closed);
   if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button></div>';
 
-  html += '<div class="section-title">🍲 Food Used</div>';
+  html += '<div class="section-title">Food Used</div>';
   html += usageList(ev, 'food', closed);
   if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button></div>';
 
   if (!closed) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       (isAdmin() ? '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' : '') +
-      '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">🔒 Close Event</button>' +
+      '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">Close Event</button>' +
     '</div>';
     html += '<div class="hint" style="text-align:center;margin-top:6px">Close this once the event is done and all items have been accounted for.</div>';
   } else if (isAdmin()) {
     html += '<div class="btn-row" style="margin-top:16px">' +
-      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">🗑️ Delete This Event</button>' +
+      '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete This Event</button>' +
     '</div>';
     html += '<div class="hint" style="text-align:center;margin-top:6px">Use this if the event was closed by mistake or needs to be removed entirely.</div>';
   }
@@ -1004,7 +999,7 @@ function usageList(ev, category, closed) {
     return '<div class="card"><div class="row">' + photoThumb(it) +
       '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
       '<div class="item-meta">' + r.u.qty + ' ' + esc(it.unit) + ' · ' + money(cost) + '</div></div>' +
-      (!closed && canEditRecord(r.u.ts) ? '<button class="btn btn-sm" onclick="editUsage(\'' + ev.id + '\',' + r.idx + ')">✏️</button>' : '') +
+      (!closed && canEditRecord(r.u.ts) ? '<button class="btn btn-sm" onclick="editUsage(\'' + ev.id + '\',' + r.idx + ')">' + svgIcon('edit', 14) + '</button>' : '') +
       '</div></div>';
   }).join('');
 }
@@ -1045,9 +1040,9 @@ function doRelease(evId, itemId) {
   } else {
     ev.lines.push({ itemId: itemId, out: qty, returned: 0, damaged: 0, lost: 0, notes: notes, ts: Date.now() });
   }
-  logAction('📤 Released ' + qty + ' ' + it.name + ' — ' + ev.name);
+  logAction('Released ' + qty + ' ' + it.name + ' — ' + ev.name);
   saveDB(); closeModal(); render();
-  toast('📤 Released: ' + qty + ' ' + it.name);
+  toast('Released: ' + qty + ' ' + it.name);
 }
 
 function openReturnForm(evId, lineIdx) {
@@ -1076,9 +1071,9 @@ function doReturn(evId, lineIdx) {
   l.damaged = (l.damaged || 0) + dmg;
   var notes = document.getElementById('rt_notes').value.trim();
   if (notes) l.notes = (l.notes ? l.notes + '; ' : '') + notes;
-  logAction('📥 Returned ' + ok + (dmg ? ' + ' + dmg + ' damaged' : '') + ' ' + (it ? it.name : '?') + ' — ' + ev.name);
+  logAction('Returned ' + ok + (dmg ? ' + ' + dmg + ' damaged' : '') + ' ' + (it ? it.name : '?') + ' — ' + ev.name);
   saveDB(); closeModal(); render();
-  toast('📥 Returned: ' + ok + (dmg ? ' · Damaged: ' + dmg : '') + ' — ' + (it ? it.name : ''));
+  toast('Returned: ' + ok + (dmg ? ' · Damaged: ' + dmg : '') + ' — ' + (it ? it.name : ''));
 }
 
 /* CHANGED: edit a released line — correct a wrongly-encoded OUT quantity,
@@ -1091,7 +1086,7 @@ function openEditRelease(evId, lineIdx) {
   var html = '<h3>Edit Release: ' + esc(it ? it.name : '') + '</h3>' +
     '<div class="hint" style="margin-bottom:10px">Recorded OUT: <b>' + l.out + '</b> · Returned: <b>' + (l.returned || 0) + '</b> · Damaged/Lost: <b>' + ((l.damaged || 0) + (l.lost || 0)) + '</b><br>If the released quantity was encoded wrong, correct it here.</div>' +
     '<div class="field"><label>Correct quantity released (OUT)</label><input id="er_out" type="number" inputmode="numeric" min="' + minOut + '" value="' + l.out + '"></div>' +
-    (minOut > 0 ? '<div class="hint" style="margin-bottom:10px">⚠️ Cannot go below ' + minOut + ' — that many were already returned or marked damaged/lost.</div>' : '') +
+    (minOut > 0 ? '<div class="hint" style="margin-bottom:10px">Cannot go below ' + minOut + ' — that many were already returned or marked damaged/lost.</div>' : '') +
     '<div class="btn-row">' +
       (minOut === 0 ? '<button class="btn btn-danger" onclick="saveEditRelease(\'' + evId + '\',' + lineIdx + ',true)">Remove</button>' : '') +
       '<button class="btn btn-primary" onclick="saveEditRelease(\'' + evId + '\',' + lineIdx + ',false)">Save</button>' +
@@ -1116,9 +1111,9 @@ function saveEditRelease(evId, lineIdx, remove) {
       l.out = newOut;
     }
   }
-  logAction('✏️ ' + (remove ? 'Removed released item ' : 'Edited release of ') + (it ? it.name : '?') + ' — ' + ev.name);
+  logAction('' + (remove ? 'Removed released item ' : 'Edited release of ') + (it ? it.name : '?') + ' — ' + ev.name);
   saveDB(); closeModal(); render();
-  toast('✅ Release updated' + (it ? ': ' + it.name : ''));
+  toast('Release updated' + (it ? ': ' + it.name : ''));
 }
 
 function openUsagePicker(evId, category) {
@@ -1149,10 +1144,10 @@ function doUsage(evId, itemId) {
   if (u) { u.qty += qty; u.ts = Date.now(); }
   else { ev.usage.push({ itemId: itemId, qty: qty, cost: it.price || 0, ts: Date.now() }); }
   it.stock = Math.max(0, (it.stock || 0) - qty);
-  logAction('✅ Used ' + qty + ' ' + it.unit + ' ' + it.name + ' — ' + ev.name);
+  logAction('Used ' + qty + ' ' + it.unit + ' ' + it.name + ' — ' + ev.name);
   saveDB(); closeModal(); render();
   var low = it.reorderPoint > 0 && it.stock <= it.reorderPoint;
-  toast('✅ Used: ' + qty + ' ' + it.unit + ' ' + it.name + (low ? ' — ⚠️ stock running low!' : ''));
+  toast('Used: ' + qty + ' ' + it.unit + ' ' + it.name + (low ? ' — stock running low!' : ''));
 }
 
 function editUsage(evId, usageIdx) {
@@ -1178,9 +1173,9 @@ function saveUsageEdit(evId, usageIdx, remove) {
   if (it) it.stock = Math.max(0, (it.stock || 0) + diff);
   if (newQty === 0) ev.usage.splice(usageIdx, 1);
   else u.qty = newQty;
-  logAction('✏️ Edited usage of ' + (it ? it.name : '?') + ' — ' + ev.name);
+  logAction('Edited usage of ' + (it ? it.name : '?') + ' — ' + ev.name);
   saveDB(); closeModal(); render();
-  toast('✅ Updated');
+  toast('Updated');
 }
 
 function closeEvent(evId) {
@@ -1197,9 +1192,9 @@ function closeEvent(evId) {
   }
   ev.status = 'closed';
   ev.closedAt = today();
-  logAction('🔒 Closed event: ' + ev.name + (pend > 0 ? ' (' + pend + ' item(s) marked LOST)' : ''));
+  logAction('Closed event: ' + ev.name + (pend > 0 ? ' (' + pend + ' item(s) marked LOST)' : ''));
   saveDB(); render();
-  toast('🔒 Event closed');
+  toast('Event closed');
 }
 
 function deleteEvent(evId) {
@@ -1210,9 +1205,9 @@ function deleteEvent(evId) {
     if (it) it.stock = (it.stock || 0) + u.qty;
   });
   db.events = db.events.filter(function (e) { return e.id !== evId; });
-  logAction('🗑️ Deleted event: ' + ev.name);
+  logAction('Deleted event: ' + ev.name);
   saveDB(); go('events');
-  toast('🗑️ Event deleted');
+  toast('Event deleted');
 }
 
 /* ============================================================
@@ -1228,7 +1223,7 @@ function renderToolbox() {
     tile(String(lowCount), 'Need reordering', lowCount ? 'bad' : '') +
     '</div>';
 
-  html += '<div class="section-title">🧰 Toolbox</div>';
+  html += '<div class="section-title">Toolbox</div>';
   if (!items.length) html += '<div class="empty">No toolbox items yet. Add one in the Database tab.</div>';
 
   items.forEach(function (it) {
@@ -1237,7 +1232,7 @@ function renderToolbox() {
       html += '<div class="card"><div class="row">' + photoThumb(it) +
         '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
         '<div class="item-meta">Disposable · Reorder point: ' + (it.reorderPoint || 0) + ' ' + esc(it.unit) + '</div>' +
-        (low ? '<span class="badge b-red">⚠️ Reorder now!</span>' : '<span class="badge b-green">Stock OK</span>') +
+        (low ? '<span class="badge b-red">Reorder now!</span>' : '<span class="badge b-green">Stock OK</span>') +
         '</div>' +
         '<div><div class="stat-num"' + (low ? ' style="color:var(--red)"' : '') + '>' + (it.stock || 0) + '</div><div class="stat-label">' + esc(it.unit) + '</div>' +
         '<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="openDeliveryForm(\'' + it.id + '\')">＋ Delivery</button></div>' +
@@ -1247,9 +1242,9 @@ function renderToolbox() {
       var out = pendingOut(it.id);
       var dl = totalDamagedLost(it.id);
       var statusText;
-      if (out > 0) statusText = '📤 ' + out + ' currently out (at an event)';
-      else if (dl > 0) statusText = '⚠️ ' + dl + ' damaged/lost — Incomplete';
-      else statusText = '✅ Complete in storage';
+      if (out > 0) statusText = '' + out + ' currently out (at an event)';
+      else if (dl > 0) statusText = '' + dl + ' damaged/lost — Incomplete';
+      else statusText = 'Complete in storage';
       html += '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
         '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
         '<div class="item-meta">Returnable · ' + statusText + '</div></div>' +
@@ -1289,16 +1284,16 @@ function renderFood() {
     tile(money(boughtMonth), 'Bought this month') +
     tile(money(usedMonth), 'Used in events this month') +
     '</div>';
-  if (lowCount) html += '<div class="notice red">⚠️ ' + lowCount + ' food item(s) low on stock.</div>';
+  if (lowCount) html += '<div class="notice red">' + lowCount + ' food item(s) low on stock.</div>';
 
-  html += '<div class="section-title">🍲 Storage Levels</div>';
+  html += '<div class="section-title">Storage Levels</div>';
   if (!foods.length) html += '<div class="empty">No food items yet. Add one in the Database tab.</div>';
   foods.forEach(function (it) {
     var low = isLow(it);
     html += '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
       '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
       '<div class="item-meta">' + money(it.price) + '/' + esc(it.unit) + ' · reorder at ' + (it.reorderPoint || 0) + '</div>' +
-      (low ? '<span class="badge b-red">⚠️ Reorder now!</span>' : '') +
+      (low ? '<span class="badge b-red">Reorder now!</span>' : '') +
       '</div>' +
       '<div><div class="stat-num"' + (low ? ' style="color:var(--red)"' : '') + '>' + (it.stock || 0) + '</div><div class="stat-label">' + esc(it.unit) + '</div></div>' +
       '</div></div>';
@@ -1313,7 +1308,7 @@ function renderFood() {
   });
   order.sort(function (a, b) { return b.localeCompare(a); });
 
-  html += '<div class="section-title">📦 Weekly Stock Purchased / Deliveries</div>';
+  html += '<div class="section-title">Weekly Stock Purchased / Deliveries</div>';
   if (!order.length) html += '<div class="empty">No deliveries recorded yet.</div>';
   order.slice(0, 15).forEach(function (key) {
     var rows = groups[key];
@@ -1327,8 +1322,8 @@ function renderFood() {
     }).join('');
     html += '<div class="card">' +
       '<div class="row"><div class="grow">' +
-      '<div class="item-name">📅 ' + fmtDate(first.date) + (first.supplier ? ' · ' + esc(first.supplier) : '') + '</div>' +
-      '<div class="item-meta">✔️ Checker: ' + esc(first.checker || '—') + '</div></div>' +
+      '<div class="item-name">' + fmtDate(first.date) + (first.supplier ? ' · ' + esc(first.supplier) : '') + '</div>' +
+      '<div class="item-meta">Checker: ' + esc(first.checker || '—') + '</div></div>' +
       '<div><div class="stat-num">' + money(total) + '</div><div class="stat-label">total</div></div></div>' +
       '<div style="margin-top:8px">' + linesHtml + '</div>' +
       '</div>';
@@ -1353,7 +1348,7 @@ function openDeliveryForm(presetItemId) {
 }
 
 function renderDeliveryModal() {
-  var html = '<h3>📦 New Delivery / Stock In</h3>' +
+  var html = '<h3>New Delivery / Stock In</h3>' +
     '<div class="field-row">' +
       '<div class="field"><label>Delivery date</label><input id="d_date" type="date" value="' + esc(deliveryHeader.date) + '" oninput="deliveryHeader.date=this.value"></div>' +
       '<div class="field"><label>Supplier</label><input id="d_supplier" value="' + esc(deliveryHeader.supplier) + '" placeholder="e.g. Aling Nena" oninput="deliveryHeader.supplier=this.value"></div>' +
@@ -1386,7 +1381,7 @@ function refreshDeliveryLines() {
     var it = getItem(dl.itemId);
     return '<div class="card" style="padding:10px">' +
       '<div class="row"><div class="grow"><b>' + esc(it ? it.name : '?') + '</b></div>' +
-      '<button class="btn btn-sm" onclick="deliveryLines.splice(' + i + ',1);refreshDeliveryLines()">✖</button></div>' +
+      '<button class="btn btn-sm" onclick="deliveryLines.splice(' + i + ',1);refreshDeliveryLines()">×</button></div>' +
       '<div class="field-row" style="margin-top:8px">' +
         '<div class="field" style="margin:0"><label>Quantity (' + esc(it ? it.unit : '') + ')</label>' +
         '<input type="number" inputmode="decimal" min="0" step="any" value="' + (dl.qty || '') + '" placeholder="0" oninput="deliveryLines[' + i + '].qty=parseFloat(this.value)||0"></div>' +
@@ -1409,9 +1404,9 @@ function saveDelivery() {
     if (dl.cost > 0) it.price = dl.cost;
     db.deliveries.push({ id: uid(), date: date, supplier: supplier, checker: checker, itemId: dl.itemId, qty: dl.qty, cost: dl.cost || 0 });
   });
-  logAction('📦 Delivery received (' + valid.length + ' item(s))' + (supplier ? ' from ' + supplier : ''));
+  logAction('Delivery received (' + valid.length + ' item(s))' + (supplier ? ' from ' + supplier : ''));
   saveDB(); closeModal(); render();
-  toast('📦 Delivery saved (' + valid.length + ' item(s))');
+  toast('Delivery saved (' + valid.length + ' item(s))');
 }
 
 /* ============================================================
@@ -1421,7 +1416,7 @@ var leadSearch = '';
 
 function renderLeads() {
   /* CHANGED: added lead search bar — refreshes only the list so the keyboard stays open */
-  var html = '<input class="search" placeholder="🔍 Search lead, client/event, or date…" value="' + esc(leadSearch) + '" oninput="leadSearch=this.value;refreshLeadList()">';
+  var html = '<input class="search" placeholder="Search lead, client/event, or date…" value="' + esc(leadSearch) + '" oninput="leadSearch=this.value;refreshLeadList()">';
   html += '<div class="hint" style="margin:2px 2px 12px">This shows who is <b>cleared</b> and who has <b>pending items or damages</b> from their events.</div>';
   html += '<div id="leadList">' + leadListHTML() + '</div>';
   return html;
@@ -1465,8 +1460,8 @@ function leadListHTML() {
   filtered.forEach(function (name, i) {
     var L = leads[name];
     var cleared = L.pending === 0 && L.issues === 0;
-    var badge = cleared ? '<span class="badge b-green">✅ Cleared</span>' :
-      (L.pending > 0 ? '<span class="badge b-red">⚠️ ' + L.pending + ' not returned</span>' : '') +
+    var badge = cleared ? '<span class="badge b-green">Cleared</span>' :
+      (L.pending > 0 ? '<span class="badge b-red">' + L.pending + ' not returned</span>' : '') +
       (L.issues > 0 ? ' <span class="badge b-amber">' + L.issues + ' damaged/lost · ' + money(L.damageValue) + '</span>' : '');
     html += '<div class="card tappable" onclick="go(\'leadDetail\',window._leadNames[' + i + '])">' +
       '<div class="row"><div class="thumb">' + svgIcon('user', 22) + '</div>' +
@@ -1511,7 +1506,7 @@ function renderLeadDetail(name) {
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
     '<div class="item-meta">' + evs.length + ' event record(s)</div></div>' +
     /* CHANGED: admin can rename a lead — updates the name on all their events */
-    (isAdmin() ? '<button class="btn btn-sm" onclick="openRenameLead(window._leadDetailName)">✏️ Rename</button>' : '') +
+    (isAdmin() ? '<button class="btn btn-sm" onclick="openRenameLead(window._leadDetailName)">' + svgIcon('edit', 13) + ' Rename</button>' : '') +
     '</div></div>';
   evs.forEach(function (ev) { html += eventCard(ev); });
   return html;
@@ -1519,7 +1514,7 @@ function renderLeadDetail(name) {
 
 /* CHANGED: rename a lead across all of their event records (admin only) */
 function openRenameLead(name) {
-  var html = '<h3>✏️ Rename Lead</h3>' +
+  var html = '<h3>Rename Lead</h3>' +
     '<div class="hint" style="margin-bottom:10px">This will update the lead name on <b>ALL events</b> under "' + esc(name) + '". Use this to fix typos or merge duplicate names (e.g. "ace" into "ACE").</div>' +
     '<div class="field"><label>New name</label><input id="rl_name" value="' + esc(name === '(no lead)' ? '' : name) + '"></div>' +
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doRenameLead(window._leadDetailName)">Save</button></div>';
@@ -1536,10 +1531,10 @@ function doRenameLead(oldName) {
     var n = (ev.lead || '').trim() || '(no lead)';
     if (n === oldName) { ev.lead = newName; count++; }
   });
-  logAction('✏️ Renamed lead "' + oldName + '" → "' + newName + '" (' + count + ' event(s))');
+  logAction('Renamed lead "' + oldName + '" → "' + newName + '" (' + count + ' event(s))');
   saveDB(); closeModal();
   go('leadDetail', newName);
-  toast('✅ Lead renamed: ' + newName);
+  toast('Lead renamed: ' + newName);
 }
 
 /* ============================================================
@@ -1549,7 +1544,7 @@ function openPicker(filterFn, onPick, title) {
   pickerCallback = onPick;
   var items = db.items.filter(filterFn).sort(byName);
   var html = '<h3>' + esc(title || 'Select Item') + '</h3>' +
-    '<input class="search" placeholder="🔍 Search…" oninput="filterPicker(this.value)">' +
+    '<input class="search" placeholder="Search…" oninput="filterPicker(this.value)">' +
     '<div id="pickerList">' + pickerListHTML(items) + '</div>';
   openModal(html);
   window._pickerFilter = filterFn;
@@ -1639,7 +1634,7 @@ document.getElementById('photoInput').addEventListener('change', function () {
 function openMenu() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var html = '<h3>Menu</h3>' +
-    (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b> · ' + (isAdmin() ? '👑 Admin' : '🎪 Event Staff') + '</div>' : '') +
+    (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b> · ' + (isAdmin() ? 'Admin' : 'Event Staff') + '</div>' : '') +
     /* CHANGED: admin-only backup tools */
     (isAdmin()
       ? '<button class="menu-item" onclick="openActivityLog()">' + svgIcon('log') + ' Activity Log</button>' +
@@ -1655,7 +1650,7 @@ function openMenu() {
    and delete specific entries, plus select-all and clear-all */
 function openActivityLog() {
   var logs = db.logs || [];
-  var html = '<h3>📜 Activity Log</h3>' +
+  var html = '<h3>Activity Log</h3>' +
     '<div class="hint" style="margin-bottom:10px">Who did what, and when. Latest ' + Math.min(logs.length, 100) + ' of ' + logs.length + ' recorded action(s).</div>';
   if (!logs.length) {
     html += '<div class="empty">No activity recorded yet. Actions will appear here from now on.</div>';
@@ -1666,13 +1661,13 @@ function openActivityLog() {
       return '<div class="card" style="padding:10px"><div class="row">' +
         '<input type="checkbox" class="logSel" value="' + esc(L.id) + '" style="width:17px;height:17px;flex-shrink:0;accent-color:#1a7f5a">' +
         '<div class="grow">' +
-        '<div class="item-meta">🕒 ' + esc(L.at) + ' · 👤 <b>' + esc(L.by) + '</b></div>' +
+        '<div class="item-meta">' + esc(L.at) + ' · <b>' + esc(L.by) + '</b></div>' +
         '<div style="margin-top:2px">' + esc(L.text) + '</div>' +
         '</div></div></div>';
     }).join('');
     html += '<div class="btn-row" style="position:sticky;bottom:-18px;background:#fff;padding:12px 0 18px;margin-bottom:-18px;border-top:1px solid var(--line)">' +
-      '<button class="btn btn-danger" onclick="deleteSelectedLogs()">🗑️ Delete Selected</button>' +
-      '<button class="btn" onclick="clearActivityLog()">🧹 Clear All</button>' +
+      '<button class="btn btn-danger" onclick="deleteSelectedLogs()">Delete Selected</button>' +
+      '<button class="btn" onclick="clearActivityLog()">Clear All</button>' +
       '</div>';
   }
   openModal(html);
@@ -1689,20 +1684,20 @@ function deleteSelectedLogs() {
   if (!ids.length) { alert('Select at least one entry to delete (tap the checkboxes first).'); return; }
   if (!confirm('Delete ' + ids.length + ' selected log entr' + (ids.length > 1 ? 'ies' : 'y') + '? This cannot be undone.')) return;
   db.logs = (db.logs || []).filter(function (L) { return ids.indexOf(L.id) < 0; });
-  logAction('🗑️ Deleted ' + ids.length + ' activity log entr' + (ids.length > 1 ? 'ies' : 'y'));
+  logAction('Deleted ' + ids.length + ' activity log entr' + (ids.length > 1 ? 'ies' : 'y'));
   saveDB();
   openActivityLog();
-  toast('🗑️ Deleted ' + ids.length + ' log entr' + (ids.length > 1 ? 'ies' : 'y'));
+  toast('Deleted ' + ids.length + ' log entr' + (ids.length > 1 ? 'ies' : 'y'));
 }
 
 function clearActivityLog() {
   if (!isAdmin()) return;
   if (!confirm('Clear the activity log? All ' + (db.logs || []).length + ' recorded action(s) will be removed. This cannot be undone.')) return;
   db.logs = [];
-  logAction('🧹 Cleared the activity log');
+  logAction('Cleared the activity log');
   saveDB();
   openActivityLog();
-  toast('🧹 Activity log cleared');
+  toast('Activity log cleared');
 }
 function openChangePassword() {
   var html = '<h3>Change Password</h3>' +
@@ -1720,7 +1715,7 @@ function doChangePassword() {
   if (pass1 !== pass2) { alert('Passwords do not match.'); return; }
   currentUser.updatePassword(pass1).then(function () {
     closeModal();
-    toast('✅ Password updated');
+    toast('Password updated');
   }).catch(function (err) {
     console.error('Change password error', err);
     alert('Could not update password: ' + err.message);
@@ -1739,7 +1734,7 @@ function exportData() {
   a.click();
   document.body.removeChild(a);
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
-  toast('💾 Backup downloaded');
+  toast('Backup downloaded');
 }
 
 document.getElementById('importInput').addEventListener('change', function () {
@@ -1761,9 +1756,9 @@ document.getElementById('importInput').addEventListener('change', function () {
         delete d.photosBackup;
       }
       db = d;
-      logAction('📥 Imported backup file');
+      logAction('Imported backup file');
       saveDB(); closeModal(); render();
-      toast('📥 Backup imported');
+      toast('Backup imported');
     } catch (e) {
       alert('Could not read the file. Make sure it is a backup JSON from this app.');
     }
@@ -1776,7 +1771,7 @@ function resetData() {
   if (!confirm('One last check: really delete everything?')) return;
   db = seedDB();
   saveDB(); closeModal(); render();
-  toast('🗑️ Data reset');
+  toast('Data reset');
 }
 
 var toastTimer = null;
@@ -1811,7 +1806,7 @@ function migrateOldPhotos() {
       changed = true;
     }
   });
-  if (changed) { saveDB(); render(); toast('📷 Photos moved to safer storage'); }
+  if (changed) { saveDB(); render(); toast('Photos moved to safer storage'); }
 }
 
 /* CHANGED: keep track of the live listeners so we can properly disconnect on logout */
@@ -1842,7 +1837,7 @@ function startCloudSync() {
     console.error('Cloud listen error', err);
     /* CHANGED: only warn if someone is actually logged in — a logged-out
        connection error is expected and not worth alarming anyone about */
-    if (currentUser) toast('⚠️ Could not connect to cloud — running offline.');
+    if (currentUser) toast('Could not connect to cloud — running offline.');
   });
   /* CHANGED: live-sync item photos from their own collection */
   _unsubPhotos = fsDB.collection('photos').onSnapshot(function (snap) {
@@ -1927,7 +1922,7 @@ if (fbAuth) {
     if (dist >= TRIGGER && window.scrollY <= 0) {
       ind.style.top = '14px';
       ind.textContent = '⟳';
-      toast('🔄 Refreshing…');
+      toast('Refreshing…');
       setTimeout(function () { location.reload(); }, 350);
     } else {
       ind.style.top = '-56px';
