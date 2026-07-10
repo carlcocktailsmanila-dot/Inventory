@@ -1366,36 +1366,40 @@ function renderFood() {
       '</div></div>';
   });
 
-  var groups = {};
-  var order = [];
-  db.deliveries.forEach(function (d) {
-    var key = (d.date || '') + '|' + (d.supplier || '') + '|' + (d.checker || '');
-    if (!groups[key]) { groups[key] = []; order.push(key); }
-    groups[key].push(d);
-  });
-  order.sort(function (a, b) { return b.localeCompare(a); });
+  /* CHANGED: deliveries section only shows on the "All" view — hidden when
+     a category chip is selected so the filtered list stays focused */
+  if (foodCatFilter === 'all') {
+    var groups = {};
+    var order = [];
+    db.deliveries.forEach(function (d) {
+      var key = (d.date || '') + '|' + (d.supplier || '') + '|' + (d.checker || '');
+      if (!groups[key]) { groups[key] = []; order.push(key); }
+      groups[key].push(d);
+    });
+    order.sort(function (a, b) { return b.localeCompare(a); });
 
-  html += '<div class="section-title">Weekly Stock Purchased / Deliveries</div>';
-  if (!order.length) html += '<div class="empty">No deliveries recorded yet.</div>';
-  order.slice(0, 15).forEach(function (key) {
-    var rows = groups[key];
-    var first = rows[0];
-    var total = 0;
-    var linesHtml = rows.map(function (d) {
-      var it = getItem(d.itemId);
-      var t = (d.qty || 0) * (d.cost || 0);
-      total += t;
-      return '<div class="item-meta">• ' + esc(it ? it.name : '(deleted)') + ' — ' + d.qty + ' ' + esc(it ? it.unit : '') + ' × ' + money(d.cost) + ' = <b>' + money(t) + '</b></div>';
-    }).join('');
-    html += '<div class="card">' +
-      '<div class="row"><div class="grow">' +
-      '<div class="item-name">Date: ' + fmtDate(first.date) + (first.supplier ? ' · Supplier: ' + esc(first.supplier) : '') + '</div>' +
-      '<div class="item-meta">Checker: ' + esc(first.checker || '—') + '</div></div>' +
-      '<div><div class="stat-num">' + money(total) + '</div><div class="stat-label">total</div></div></div>' +
-      '<div style="margin-top:8px">' + linesHtml + '</div>' +
-      '</div>';
-  });
-  if (order.length > 15) html += '<div class="hint" style="text-align:center">…and ' + (order.length - 15) + ' more</div>';
+    html += '<div class="section-title">Weekly Stock Purchased / Deliveries</div>';
+    if (!order.length) html += '<div class="empty">No deliveries recorded yet.</div>';
+    order.slice(0, 15).forEach(function (key) {
+      var rows = groups[key];
+      var first = rows[0];
+      var total = 0;
+      var linesHtml = rows.map(function (d) {
+        var it = getItem(d.itemId);
+        var t = (d.qty || 0) * (d.cost || 0);
+        total += t;
+        return '<div class="item-meta">• ' + esc(it ? it.name : '(deleted)') + ' — ' + d.qty + ' ' + esc(it ? it.unit : '') + ' × ' + money(d.cost) + ' = <b>' + money(t) + '</b></div>';
+      }).join('');
+      html += '<div class="card">' +
+        '<div class="row"><div class="grow">' +
+        '<div class="item-name">Date: ' + fmtDate(first.date) + (first.supplier ? ' · Supplier: ' + esc(first.supplier) : '') + '</div>' +
+        '<div class="item-meta">Checker: ' + esc(first.checker || '—') + '</div></div>' +
+        '<div><div class="stat-num">' + money(total) + '</div><div class="stat-label">total</div></div></div>' +
+        '<div style="margin-top:8px">' + linesHtml + '</div>' +
+        '</div>';
+    });
+    if (order.length > 15) html += '<div class="hint" style="text-align:center">…and ' + (order.length - 15) + ' more</div>';
+  }
 
   html += '<button onclick="openDeliveryForm()" title="New Delivery (Weekly Stock)" style="position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));right:20px;width:56px;height:56px;border-radius:50%;background:#1a7f5a;color:#fff;border:none;font-size:28px;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer;z-index:80;display:flex;align-items:center;justify-content:center;line-height:1">＋</button>';
   return html;
