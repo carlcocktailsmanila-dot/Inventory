@@ -1449,8 +1449,20 @@ function openActivityLog() {
             '<div class="item-meta">🕒 ' + esc(L.at) + ' · 👤 <b>' + esc(L.by) + '</b></div>' +
             '<div style="margin-top:2px">' + esc(L.text) + '</div>' +
             '</div>';
-        }).join(''));
+        }).join('')) +
+    /* CHANGED: admin can clear the log when it gets too long */
+    (logs.length ? '<div class="btn-row"><button class="btn btn-danger btn-block" onclick="clearActivityLog()">🧹 Clear Log</button></div>' : '');
   openModal(html);
+}
+
+function clearActivityLog() {
+  if (!isAdmin()) return;
+  if (!confirm('Clear the activity log? All ' + (db.logs || []).length + ' recorded action(s) will be removed. This cannot be undone.')) return;
+  db.logs = [];
+  logAction('🧹 Cleared the activity log');
+  saveDB();
+  openActivityLog();
+  toast('🧹 Activity log cleared');
 }
 function openChangePassword() {
   var html = '<h3>Change Password</h3>' +
