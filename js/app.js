@@ -35,6 +35,14 @@ function isAdmin() {
   return !!(currentUser && currentUser.email && ADMIN_EMAILS.indexOf(currentUser.email.toLowerCase()) >= 0);
 }
 
+/* CHANGED: staff can only edit records within 3 hours of encoding them.
+   Admins can edit anytime. Returns are NOT affected by this limit. */
+var EDIT_WINDOW_MS = 3 * 60 * 60 * 1000;
+function canEditRecord(ts) {
+  if (isAdmin()) return true;
+  return !!ts && (Date.now() - ts) < EDIT_WINDOW_MS;
+}
+
 /* CHANGED: map each account email to a display name.
    Used to auto-fill the "Lead" field with whoever is logged in. */
 var STAFF_NAMES = {
@@ -516,7 +524,41 @@ function renderStaffHome() {
   html += '<div class="section-title">📍 My Events Today</div>';
   html += todayEvents.length ? todayEvents.map(eventCard).join('') : '<div class="empty">No events assigned to you today.</div>';
 
+  /* CHANGED: staff can see and search their own past events */
+  html += '<div class="section-title">📜 My Past Events</div>';
+  html += '<input class="search" placeholder="🔍 Search my events…" value="' + esc(staffHomeSearch) + '" oninput="staffHomeSearch=this.value;refreshMyEvents()">';
+  html += '<div id="myEventList">' + myEventsListHTML() + '</div>';
+
   return html;
+}
+
+/* CHANGED: searchable list of the logged-in staff's past events (closed or past-date) */
+var staffHomeSearch = '';
+
+function myEventsListHTML() {
+  var myKey = currentUserName().toLowerCase();
+  var td = today();
+  var q = staffHomeSearch.trim().toLowerCase();
+  var list = db.events.filter(function (ev) {
+    if ((ev.lead || '').trim().toLowerCase() !== myKey) return false;
+    var isOld = ev.status === 'closed' || (ev.date || '') < td;
+    if (!isOld) return false;
+    if (!q) return true;
+    return (ev.name || '').toLowerCase().indexOf(q) >= 0 ||
+           (ev.venue || '').toLowerCase().indexOf(q) >= 0 ||
+           (ev.date || '').indexOf(q) >= 0 ||
+           fmtDate(ev.date).toLowerCase().indexOf(q) >= 0;
+  });
+  list.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+  if (!list.length) return '<div class="empty">' + (q ? 'No matching events.' : 'No past events yet.') + '</div>';
+  var html = list.slice(0, 30).map(eventCard).join('');
+  if (list.length > 30) html += '<div class="hint" style="text-align:center">…and ' + (list.length - 30) + ' more</div>';
+  return html;
+}
+
+function refreshMyEvents() {
+  var el = document.getElementById('myEventList');
+  if (el) el.innerHTML = myEventsListHTML();
 }
 
 /* ============================================================
@@ -849,6 +891,7 @@ function eventCard(ev) {
 
 function openEventForm(id) {
   var ev = id ? getEvent(id) : null;
+  if (ev && !canEditRecord(ev.ts)) { alert('The 3-hour editing window for this event\'s details has passed. Ask an admin to make corrections.'); return; }
   var html = '<h3>' + (ev ? 'Edit Event' : 'New Event') + '</h3>' +
     '<div class="field"><label>Event / Client Name</label><input id="e_name" value="' + esc(ev ? ev.name : '') + '" placeholder="e.g. Santos Wedding"></div>' +
     '<div class="field-row">' +
@@ -868,7 +911,7 @@ function saveEventForm(id) {
   if (!name) { alert('Enter the event name.'); return; }
   var ev = id ? getEvent(id) : null;
   var isNew = !ev;
-  if (!ev) { ev = { id: uid(), status: 'open', lines: [], usage: [] }; db.events.push(ev); }
+  if (!ev) { ev = { id: uid(), status: 'open', lines: [], usage: [], ts: Date.now() }; db.events.push(ev); }
   ev.name = name;
   ev.date = document.getElementById('e_date').value || today();
   ev.venue = document.getElementById('e_venue').value.trim();
@@ -893,7 +936,7 @@ function renderEventDetail(id) {
     '<div class="item-meta">📅 ' + fmtDate(ev.date) + (ev.venue ? ' · 📍 ' + esc(ev.venue) : '') + '</div>' +
     '<div class="item-meta">👤 Lead: <b>' + esc(ev.lead || '—') + '</b> · ✔️ Checker: <b>' + esc(ev.checker || '—') + '</b></div>' +
     '</div>' +
-    (!closed ? '<button class="btn btn-sm" onclick="openEventForm(\'' + ev.id + '\')">✏️</button>' : '<span class="badge b-gray">CLOSED</span>') +
+    (!closed ? (canEditRecord(ev.ts) ? '<button class="btn btn-sm" onclick="openEventForm(\'' + ev.id + '\')">✏️</button>' : '') : '<span class="badge b-gray">CLOSED</span>') +
     '</div></div>';
   if (!closed && pend > 0) html += '<div class="notice red">⚠️ ' + pend + ' item(s) not yet returned.</div>';
   if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">✅ All items returned. This event can now be closed.</div>';
@@ -913,7 +956,7 @@ function renderEventDetail(id) {
       '<div class="row">' + (it ? photoThumb(it) : '<div class="thumb">❓</div>') +
       '<div class="grow"><div class="item-name">' + esc(name2) + '</div>' +
       (l.notes ? '<div class="item-meta">📝 ' + esc(l.notes) + '</div>' : '') + '</div>' +
-      (!closed ? '<button class="btn btn-sm" style="margin-right:6px" onclick="openEditRelease(\'' + ev.id + '\',' + idx + ')" title="Edit released quantity">✏️</button>' +
+      (!closed ? (canEditRecord(l.ts) ? '<button class="btn btn-sm" style="margin-right:6px" onclick="openEditRelease(\'' + ev.id + '\',' + idx + ')" title="Edit released quantity">✏️</button>' : '') +
                  '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Return</button>' : '') +
       '</div>' +
       '<div class="line-grid">' +
@@ -962,7 +1005,7 @@ function usageList(ev, category, closed) {
     return '<div class="card"><div class="row">' + photoThumb(it) +
       '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
       '<div class="item-meta">' + r.u.qty + ' ' + esc(it.unit) + ' · ' + money(cost) + '</div></div>' +
-      (!closed ? '<button class="btn btn-sm" onclick="editUsage(\'' + ev.id + '\',' + r.idx + ')">✏️</button>' : '') +
+      (!closed && canEditRecord(r.u.ts) ? '<button class="btn btn-sm" onclick="editUsage(\'' + ev.id + '\',' + r.idx + ')">✏️</button>' : '') +
       '</div></div>';
   }).join('');
 }
@@ -998,9 +1041,10 @@ function doRelease(evId, itemId) {
   (ev.lines || []).forEach(function (l) { if (l.itemId === itemId) line = l; });
   if (line) {
     line.out += qty;
+    line.ts = Date.now();
     if (notes) line.notes = (line.notes ? line.notes + '; ' : '') + notes;
   } else {
-    ev.lines.push({ itemId: itemId, out: qty, returned: 0, damaged: 0, lost: 0, notes: notes });
+    ev.lines.push({ itemId: itemId, out: qty, returned: 0, damaged: 0, lost: 0, notes: notes, ts: Date.now() });
   }
   logAction('📤 Released ' + qty + ' ' + it.name + ' — ' + ev.name);
   saveDB(); closeModal(); render();
@@ -1042,6 +1086,7 @@ function doReturn(evId, lineIdx) {
    or remove the line entirely if nothing has been returned/damaged yet */
 function openEditRelease(evId, lineIdx) {
   var ev = getEvent(evId); var l = ev.lines[lineIdx];
+  if (!canEditRecord(l.ts)) { alert('The 3-hour editing window for this entry has passed. Ask an admin to make corrections.'); return; }
   var it = getItem(l.itemId);
   var minOut = (l.returned || 0) + (l.damaged || 0) + (l.lost || 0);
   var html = '<h3>Edit Release: ' + esc(it ? it.name : '') + '</h3>' +
@@ -1102,8 +1147,8 @@ function doUsage(evId, itemId) {
   if (qty > (it.stock || 0) && !confirm('Warning: only ' + (it.stock || 0) + ' ' + it.unit + ' of ' + it.name + ' in stock. Proceed anyway?')) return;
   var u = null;
   (ev.usage || []).forEach(function (x) { if (x.itemId === itemId) u = x; });
-  if (u) { u.qty += qty; }
-  else { ev.usage.push({ itemId: itemId, qty: qty, cost: it.price || 0 }); }
+  if (u) { u.qty += qty; u.ts = Date.now(); }
+  else { ev.usage.push({ itemId: itemId, qty: qty, cost: it.price || 0, ts: Date.now() }); }
   it.stock = Math.max(0, (it.stock || 0) - qty);
   logAction('✅ Used ' + qty + ' ' + it.unit + ' ' + it.name + ' — ' + ev.name);
   saveDB(); closeModal(); render();
@@ -1113,6 +1158,7 @@ function doUsage(evId, itemId) {
 
 function editUsage(evId, usageIdx) {
   var ev = getEvent(evId); var u = ev.usage[usageIdx];
+  if (!canEditRecord(u.ts)) { alert('The 3-hour editing window for this entry has passed. Ask an admin to make corrections.'); return; }
   var it = getItem(u.itemId);
   var html = '<h3>Edit: ' + esc(it.name) + '</h3>' +
     '<div class="hint" style="margin-bottom:10px">Recorded: <b>' + u.qty + ' ' + esc(it.unit) + '</b>. If you reduce this, the difference is returned to stock (e.g. it wasn\'t actually used).</div>' +
@@ -1400,6 +1446,13 @@ function leadListHTML() {
 
   if (!order.length) return '<div class="empty">No events yet, so no lead records yet.</div>';
 
+  /* CHANGED: staff only see their own lead record — other leads are hidden */
+  if (!isAdmin()) {
+    var myKey = currentUserName().toLowerCase();
+    order = order.filter(function (n) { return n.toLowerCase() === myKey; });
+    if (!order.length) return '<div class="empty">No event records under your name yet.</div>';
+  }
+
   var q = leadSearch.trim().toLowerCase();
   var filtered = order.filter(function (n) {
     if (!q) return true;
@@ -1431,6 +1484,11 @@ function refreshLeadList() {
   if (el) el.innerHTML = leadListHTML();
 }
 function renderLeadDetail(name) {
+  /* CHANGED: staff can only open their own lead record */
+  if (!isAdmin() && (name || '').toLowerCase() !== currentUserName().toLowerCase()) {
+    return '<button class="back-btn" onclick="go(\'leads\')">← Back to Leads</button>' +
+      '<div class="empty">You can only view your own lead record.</div>';
+  }
   var evs = db.events.filter(function (ev) {
     return ((ev.lead || '').trim() || '(no lead)') === name;
   });
