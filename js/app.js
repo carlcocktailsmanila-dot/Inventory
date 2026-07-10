@@ -370,6 +370,8 @@ function go(tab, param) {
   window.scrollTo(0, 0);
 }
 
+function goHomeOrEvents() { go(isAdmin() ? 'home' : 'events'); }
+
 function render() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var nav = document.querySelector('.bottomnav');
@@ -392,13 +394,71 @@ function render() {
     b.classList.toggle('active', t === navTab);
   });
   var v = document.getElementById('view');
-  if (route.tab === 'db') v.innerHTML = renderDatabase();
+  if (route.tab === 'home') v.innerHTML = renderHome();
+  else if (route.tab === 'db') v.innerHTML = renderDatabase();
   else if (route.tab === 'events') v.innerHTML = renderEvents();
   else if (route.tab === 'eventDetail') v.innerHTML = renderEventDetail(route.eventId);
   else if (route.tab === 'toolbox') v.innerHTML = renderToolbox();
   else if (route.tab === 'food') v.innerHTML = renderFood();
   else if (route.tab === 'leads') v.innerHTML = renderLeads();
   else if (route.tab === 'leadDetail') v.innerHTML = renderLeadDetail(route.lead);
+}
+
+/* ============================================================
+   TAB: HOME (admin dashboard)
+   ============================================================ */
+function renderHome() {
+  var h = new Date().getHours();
+  var greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  var td = today();
+
+  /* totals */
+  var invValue = 0;
+  var lowItems = [];
+  db.items.forEach(function (it) {
+    if (isConsumable(it)) {
+      invValue += (it.stock || 0) * (it.price || 0);
+      if (isLow(it)) lowItems.push(it);
+    } else {
+      invValue += ownedEffective(it) * (it.price || 0);
+    }
+  });
+
+  var month = td.slice(0, 7);
+  var dmgMonth = 0;
+  db.events.forEach(function (ev) {
+    if ((ev.date || '').slice(0, 7) === month) dmgMonth += eventDamageValue(ev);
+  });
+
+  var pendTotal = 0, pastOpenCount = 0;
+  db.events.forEach(function (ev) {
+    if (ev.status !== 'open') return;
+    pendTotal += eventPending(ev);
+    if ((ev.date || '') < td) pastOpenCount++;
+  });
+
+  var html = '<div style="margin:6px 2px 4px">' +
+    '<div style="font-size:20px;font-weight:800">' + greet + ', ' + esc(currentUserName()) + '! 👋</div>' +
+    '<div class="hint">' + fmtDate(td) + ' · Here\'s how Cocktails Manila looks today.</div>' +
+    '</div>';
+
+  html += '<div class="tiles">' +
+    tile(money(invValue), 'Total inventory value') +
+    tile(money(dmgMonth), 'Damage/lost this month', dmgMonth > 0 ? 'bad' : '') +
+    tile(String(pendTotal), 'Items still out', pendTotal > 0 ? 'bad' : '') +
+    tile(String(lowItems.length), 'Low stock items', lowItems.length ? 'bad' : '') +
+    '</div>';
+
+  if (pastOpenCount > 0) {
+    html += '<div class="notice amber">⏳ ' + pastOpenCount + ' event(s) past their date are still open — review and close them in the Events tab.</div>';
+  }
+
+  if (lowItems.length) {
+    html += '<div class="section-title">⚠️ Reorder Soon</div>';
+    lowItems.sort(byName).slice(0, 5).forEach(function (it) { html += itemCard(it); });
+  }
+
+  return html;
 }
 
 /* ============================================================
@@ -1671,6 +1731,10 @@ if (fbAuth) {
   fbAuth.onAuthStateChanged(function (user) {
     if (user) {
       currentUser = user;
+      /* CHANGED: admins land on the Home dashboard on first login (no saved page) */
+      try {
+        if (!localStorage.getItem('cci-route') && isAdmin()) route.tab = 'home';
+      } catch (e) { }
       render();
       startCloudSync();
     } else {
