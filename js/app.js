@@ -408,7 +408,7 @@ function render() {
   else if (route.tab === 'eventDetail') v.innerHTML = renderEventDetail(route.eventId);
   else if (route.tab === 'toolbox') v.innerHTML = renderToolbox();
   else if (route.tab === 'food') v.innerHTML = renderFood();
-  else if (route.tab === 'leads') v.innerHTML = renderLeads();
+  else if (route.tab === 'leads') v.innerHTML = admin ? renderLeads() : renderLeadDetail(myLeadName());
   else if (route.tab === 'leadDetail') v.innerHTML = renderLeadDetail(route.lead);
 }
 
@@ -875,16 +875,15 @@ function eventCard(ev) {
   } else {
     badge = pend > 0 ? '<span class="badge b-red">' + pend + ' not yet returned</span>' : '<span class="badge b-green">All returned</span>';
   }
-  var val = eventValueOut(ev) + eventUsageCost(ev);
-  /* CHANGED: highlight events happening today */
+  /* CHANGED: peso value removed from event cards — values are shown inside
+     the event detail instead. Damage/lost badges stay visible. */
   if (ev.status === 'open' && ev.date === today()) badge = '<span class="badge b-green">📍 TODAY</span> ' + badge;
   return '<div class="card tappable" onclick="go(\'eventDetail\',\'' + ev.id + '\')">' +
     '<div class="row"><div class="grow">' +
       '<div class="item-name">' + esc(ev.name) + '</div>' +
       '<div class="item-meta">📅 ' + fmtDate(ev.date) + (ev.venue ? ' · 📍 ' + esc(ev.venue) : '') + '</div>' +
       '<div class="item-meta">👤 Lead: ' + esc(ev.lead || '—') + ' · ✔️ Checker: ' + esc(ev.checker || '—') + '</div>' +
-    '</div>' +
-    '<div><div class="stat-num">' + money(val) + '</div><div class="stat-label">value</div></div></div>' +
+    '</div></div>' +
     '<div style="margin-top:8px">' + badge + '</div>' +
     '</div>';
 }
@@ -1483,6 +1482,18 @@ function refreshLeadList() {
   var el = document.getElementById('leadList');
   if (el) el.innerHTML = leadListHTML();
 }
+/* CHANGED: find the logged-in staff's lead name as it's actually written
+   in the event records (handles casing differences) */
+function myLeadName() {
+  var myKey = currentUserName().toLowerCase();
+  var found = null;
+  db.events.forEach(function (ev) {
+    var n = (ev.lead || '').trim();
+    if (n && n.toLowerCase() === myKey) found = n;
+  });
+  return found || currentUserName();
+}
+
 function renderLeadDetail(name) {
   /* CHANGED: staff can only open their own lead record */
   if (!isAdmin() && (name || '').toLowerCase() !== currentUserName().toLowerCase()) {
@@ -1494,7 +1505,8 @@ function renderLeadDetail(name) {
   });
   evs.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
   window._leadDetailName = name;
-  var html = '<button class="back-btn" onclick="go(\'leads\')">← Back to Leads</button>';
+  /* CHANGED: back button is admin-only — for staff, the Leads tab IS this page */
+  var html = isAdmin() ? '<button class="back-btn" onclick="go(\'leads\')">← Back to Leads</button>' : '';
   html += '<div class="card"><div class="row"><div class="thumb">' + svgIcon('user', 22) + '</div><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
     '<div class="item-meta">' + evs.length + ' event record(s)</div></div>' +
