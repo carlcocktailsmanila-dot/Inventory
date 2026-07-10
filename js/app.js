@@ -123,7 +123,7 @@ function renderLoginScreen() {
      directly in Firebase Console (Authentication → Users → Add user) */
   v.innerHTML =
     '<div style="text-align:center;padding:60px 20px">' +
-      '<div style="font-size:48px;margin-bottom:12px">📦</div>' +
+      '<img src="logo.png" alt="Cocktails Manila" style="width:110px;height:110px;object-fit:contain;margin-bottom:12px">' +
       '<h2 style="margin-bottom:6px">Cocktails Manila Inventory</h2>' +
       '<p class="hint">Sign in with the account given to you by the admin.</p>' +
       '<div style="max-width:280px;margin:16px auto;text-align:left">' +
