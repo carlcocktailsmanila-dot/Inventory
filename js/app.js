@@ -92,12 +92,32 @@ function togglePasswordView() {
   }
 }
 function doLogin() {
-  var email = document.getElementById('login_email').value.trim();
+  var id = document.getElementById('login_email').value.trim();
   var pass = document.getElementById('login_pass').value;
-  if (!email || !pass) { alert('Enter your email and password.'); return; }
+  if (!id || !pass) { alert('Enter your email/username and password.'); return; }
+  /* CHANGED: allow signing in with a short username — looked up in the
+     'usernames' collection to find the matching email */
+  if (id.indexOf('@') >= 0) {
+    signInEmail(id, pass);
+  } else {
+    if (!fsDB) { alert('No connection — please try your full email instead.'); return; }
+    fsDB.collection('usernames').doc(id.toLowerCase()).get().then(function (snap) {
+      if (snap.exists && snap.data().email) {
+        signInEmail(snap.data().email, pass);
+      } else {
+        alert('Username not found. Try your full email, or set a username from the Menu after logging in.');
+      }
+    }).catch(function (err) {
+      console.error('Username lookup error', err);
+      alert('Could not check that username. Please try your full email instead.');
+    });
+  }
+}
+
+function signInEmail(email, pass) {
   fbAuth.signInWithEmailAndPassword(email, pass).catch(function (err) {
     console.error('Login error', err);
-    alert('Wrong email or password. Please try again.');
+    alert('Wrong email/username or password. Please try again.');
   });
 }
 function doSignup() {
@@ -135,7 +155,7 @@ function renderLoginScreen() {
       '<h2 style="margin-bottom:6px">Cocktails Manila Inventory</h2>' +
       '<p class="hint">Sign in with the account given to you by the admin.</p>' +
       '<div style="max-width:280px;margin:16px auto;text-align:left">' +
-        '<div class="field"><label>Email</label><input id="login_email" type="email" placeholder="you@example.com"></div>' +
+        '<div class="field"><label>Email or Username</label><input id="login_email" type="text" autocapitalize="none" placeholder="you@example.com or username"></div>' +
         '<div class="field"><label>Password</label>' +
           '<div style="position:relative">' +
             '<input id="login_pass" type="password" placeholder="Password" style="padding-right:60px">' +
@@ -1672,6 +1692,7 @@ function openMenu() {
         '<button class="menu-item" onclick="exportData()">' + svgIcon('download') + ' Export Backup (download data)</button>' +
         '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">' + svgIcon('upload') + ' Import Backup (restore data)</button>'
       : '') +
+    '<button class="menu-item" onclick="openSetUsername()">' + svgIcon('user') + ' Set Username</button>' +
     '<button class="menu-item" onclick="openChangePassword()">' + svgIcon('lock') + ' Change Password</button>' +
     '<button class="menu-item" onclick="doLogout()">' + svgIcon('logout') + ' Sign out</button>';
   openModal(html);
@@ -1730,6 +1751,58 @@ function clearActivityLog() {
   openActivityLog();
   toast('Activity log cleared');
 }
+/* CHANGED: username system — a short username maps to the account email so
+   signing in doesn't require typing the full email address */
+function openSetUsername() {
+  var html = '<h3>Set Username</h3>' +
+    '<div class="hint" style="margin-bottom:10px">Create a short username so you can sign in without typing your full email. 3-20 characters: letters, numbers, dots, or underscores.</div>' +
+    '<div class="field"><label>Username</label><input id="su_name" autocapitalize="none" placeholder="e.g. carlmalom.cm"></div>' +
+    '<div id="su_current" class="hint" style="margin-bottom:10px">Checking current username…</div>' +
+    '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveUsername()">Save Username</button></div>';
+  openModal(html);
+  if (fsDB && currentUser) {
+    fsDB.collection('usernames').where('email', '==', currentUser.email.toLowerCase()).get().then(function (qs) {
+      var el = document.getElementById('su_current');
+      if (!el) return;
+      if (qs.empty) el.textContent = 'You have no username yet.';
+      else el.innerHTML = 'Current username: <b>' + esc(qs.docs[0].id) + '</b>';
+    }).catch(function () {
+      var el = document.getElementById('su_current');
+      if (el) el.textContent = '';
+    });
+  }
+}
+
+function saveUsername() {
+  var uname = document.getElementById('su_name').value.trim().toLowerCase();
+  if (!/^[a-z0-9._]{3,20}$/.test(uname)) {
+    alert('Username must be 3-20 characters: letters, numbers, dots, or underscores only.');
+    return;
+  }
+  var myEmail = currentUser.email.toLowerCase();
+  fsDB.collection('usernames').doc(uname).get().then(function (snap) {
+    if (snap.exists && (snap.data().email || '').toLowerCase() !== myEmail) {
+      alert('That username is already taken. Try another one.');
+      return;
+    }
+    return fsDB.collection('usernames').where('email', '==', myEmail).get().then(function (qs) {
+      var deletes = [];
+      qs.forEach(function (d) { if (d.id !== uname) deletes.push(d.ref.delete()); });
+      return Promise.all(deletes);
+    }).then(function () {
+      return fsDB.collection('usernames').doc(uname).set({ email: myEmail });
+    }).then(function () {
+      logAction('Set username: ' + uname);
+      saveDB();
+      closeModal();
+      toast('Username saved: ' + uname + ' — you can now use it to sign in');
+    });
+  }).catch(function (err) {
+    console.error('Username save error', err);
+    alert('Could not save the username: ' + err.message);
+  });
+}
+
 function openChangePassword() {
   var html = '<h3>Change Password</h3>' +
     '<div class="field"><label>New Password</label><input id="cp_new" type="password" placeholder="Min 6 characters"></div>' +
