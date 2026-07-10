@@ -308,7 +308,8 @@ var SVG_ICONS = {
   camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
   calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
   pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
-  check: '<polyline points="20 6 9 17 4 12"/>'
+  check: '<polyline points="20 6 9 17 4 12"/>',
+  sheet: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>'
 };
 
 function svgIcon(name, size) {
@@ -1708,6 +1709,7 @@ function openMenu() {
     /* CHANGED: admin-only backup tools */
     (isAdmin()
       ? '<button class="menu-item" onclick="openActivityLog()">' + svgIcon('log') + ' Activity Log</button>' +
+        '<button class="menu-item" onclick="openExportSheet()">' + svgIcon('sheet') + ' Export to Excel / Sheets</button>' +
         '<button class="menu-item" onclick="exportData()">' + svgIcon('download') + ' Export Backup (download data)</button>' +
         '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">' + svgIcon('upload') + ' Import Backup (restore data)</button>'
       : '') +
@@ -1868,6 +1870,115 @@ function exportData() {
   document.body.removeChild(a);
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
   toast('Backup downloaded');
+}
+
+/* CHANGED: CSV exports — open directly in Excel, or import into Google Sheets
+   (File → Import). Admin only. */
+function csvCell(v) {
+  v = String(v == null ? '' : v);
+  if (/[",\n]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+  return v;
+}
+
+function downloadCSV(filename, rows) {
+  var csv = '\uFEFF' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename + '-' + today() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  toast('Downloaded: ' + filename + '-' + today() + '.csv');
+}
+
+function openExportSheet() {
+  if (!isAdmin()) return;
+  var html = '<h3>Export to Excel / Sheets</h3>' +
+    '<div class="hint" style="margin-bottom:10px">Downloads a CSV file. Open it directly in Excel, or in Google Sheets go to File → Import → Upload.</div>' +
+    '<button class="menu-item" onclick="exportItemsCSV()">Inventory Items</button>' +
+    '<button class="menu-item" onclick="exportEventsCSV()">Events Summary</button>' +
+    '<button class="menu-item" onclick="exportLinesCSV()">Released Items Detail</button>' +
+    '<button class="menu-item" onclick="exportDeliveriesCSV()">Deliveries</button>' +
+    '<button class="menu-item" onclick="exportLeadsCSV()">Leads Summary</button>' +
+    '<button class="menu-item" onclick="exportLogsCSV()">Activity Log</button>';
+  openModal(html);
+}
+
+function exportItemsCSV() {
+  var rows = [['Item', 'Category', 'Type', 'Unit', 'Price/Unit', 'Owned', 'Damaged/Lost', 'Available', 'Stock', 'Reorder Point', 'Value']];
+  db.items.slice().sort(byName).forEach(function (it) {
+    var consumable = isConsumable(it);
+    var value = consumable ? (it.stock || 0) * (it.price || 0) : ownedEffective(it) * (it.price || 0);
+    rows.push([
+      it.name, catLabel(it), it.material || '', it.unit, it.price || 0,
+      consumable ? '' : (it.owned || 0),
+      consumable ? '' : totalDamagedLost(it.id),
+      consumable ? '' : availableNow(it),
+      consumable ? (it.stock || 0) : '',
+      consumable ? (it.reorderPoint || 0) : '',
+      value
+    ]);
+  });
+  downloadCSV('inventory-items', rows);
+}
+
+function exportEventsCSV() {
+  var rows = [['Event', 'Date', 'Venue', 'Lead', 'Checker', 'Status', 'Released Value', 'Food Cost', 'Damaged/Lost', 'Damage Value', 'Pending']];
+  db.events.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).forEach(function (ev) {
+    rows.push([ev.name, ev.date || '', ev.venue || '', ev.lead || '', ev.checker || '', ev.status,
+      eventValueOut(ev), eventUsageCost(ev), eventIssues(ev), eventDamageValue(ev), eventPending(ev)]);
+  });
+  downloadCSV('events-summary', rows);
+}
+
+function exportLinesCSV() {
+  var rows = [['Event', 'Date', 'Lead', 'Item', 'Out', 'Returned', 'Damaged', 'Lost', 'Pending', 'Damage Value']];
+  db.events.forEach(function (ev) {
+    (ev.lines || []).forEach(function (l) {
+      var it = getItem(l.itemId);
+      rows.push([ev.name, ev.date || '', ev.lead || '', it ? it.name : '(deleted)',
+        l.out || 0, l.returned || 0, l.damaged || 0, l.lost || 0, linePending(l),
+        ((l.damaged || 0) + (l.lost || 0)) * (it ? (it.price || 0) : 0)]);
+    });
+  });
+  downloadCSV('released-items', rows);
+}
+
+function exportDeliveriesCSV() {
+  var rows = [['Date', 'Supplier', 'Checker', 'Item', 'Qty', 'Unit', 'Cost/Unit', 'Total']];
+  db.deliveries.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); }).forEach(function (d) {
+    var it = getItem(d.itemId);
+    rows.push([d.date || '', d.supplier || '', d.checker || '', it ? it.name : '(deleted)',
+      d.qty || 0, it ? it.unit : '', d.cost || 0, (d.qty || 0) * (d.cost || 0)]);
+  });
+  downloadCSV('deliveries', rows);
+}
+
+function exportLeadsCSV() {
+  var leads = {}; var order = [];
+  db.events.forEach(function (ev) {
+    var n = (ev.lead || '').trim() || '(no lead)';
+    if (!leads[n]) { leads[n] = { events: 0, pending: 0, issues: 0, dmg: 0 }; order.push(n); }
+    leads[n].events++;
+    if (ev.status === 'open') leads[n].pending += eventPending(ev);
+    leads[n].issues += eventIssues(ev);
+    leads[n].dmg += eventDamageValue(ev);
+  });
+  order.sort();
+  var rows = [['Lead', 'Events', 'Pending Items', 'Damaged/Lost', 'Damage Value']];
+  order.forEach(function (n) {
+    var L = leads[n];
+    rows.push([n, L.events, L.pending, L.issues, L.dmg]);
+  });
+  downloadCSV('leads-summary', rows);
+}
+
+function exportLogsCSV() {
+  var rows = [['Time', 'By', 'Action']];
+  (db.logs || []).forEach(function (L) { rows.push([L.at, L.by, L.text]); });
+  downloadCSV('activity-log', rows);
 }
 
 document.getElementById('importInput').addEventListener('change', function () {
