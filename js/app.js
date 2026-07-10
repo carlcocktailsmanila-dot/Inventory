@@ -2107,6 +2107,10 @@ if (fbAuth) {
     } else {
       currentUser = null;
       stopCloudSync(); /* CHANGED: disconnect cleanly on logout */
+      /* CHANGED: forget the remembered tab on sign-out, so every fresh
+         sign-in starts at Home (refresh while logged in still keeps the tab) */
+      try { localStorage.removeItem('cci-route'); } catch (e) { }
+      route = { tab: 'home', eventId: null, lead: null };
       renderLoginScreen();
     }
     hideSplash();
