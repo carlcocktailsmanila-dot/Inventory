@@ -1551,6 +1551,16 @@ function renderLeadDetail(name) {
     /* CHANGED: admin can rename a lead — updates the name on all their events */
     (isAdmin() ? '<button class="btn btn-sm" onclick="openRenameLead(window._leadDetailName)">' + svgIcon('edit', 13) + ' Rename</button>' : '') +
     '</div></div>';
+  /* CHANGED: all-time damage summary tiles for this lead */
+  var dmgCount = 0, dmgValue = 0;
+  evs.forEach(function (ev) {
+    dmgCount += eventIssues(ev);
+    dmgValue += eventDamageValue(ev);
+  });
+  html += '<div class="tiles">' +
+    tile(String(dmgCount), 'Items damaged/lost (all time)', dmgCount > 0 ? 'bad' : '') +
+    tile(money(dmgValue), 'Total damage cost', dmgValue > 0 ? 'bad' : '') +
+    '</div>';
   /* CHANGED: searchable event list so a specific event can be found quickly */
   html += '<input class="search" placeholder="Search event, venue, or date…" value="' + esc(leadDetailSearch) + '" oninput="leadDetailSearch=this.value;refreshLeadEvents()">';
   html += '<div id="leadEventList">' + leadEventsHTML(name) + '</div>';
