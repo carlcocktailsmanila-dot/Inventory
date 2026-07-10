@@ -1795,6 +1795,11 @@ function saveUsername() {
         alert('That username is already taken. Try another one.');
         return;
       }
+      /* CHANGED: final confirmation — the username is permanent, so give one
+         last chance to double-check the spelling before saving */
+      if (!confirm('Are you sure you want to set "' + uname + '" as your username?\n\nPlease double-check the spelling — this can only be set ONCE and cannot be changed afterward.')) {
+        return;
+      }
       return fsDB.collection('usernames').doc(uname).set({ email: myEmail }).then(function () {
         logAction('Set username: ' + uname);
         saveDB();
