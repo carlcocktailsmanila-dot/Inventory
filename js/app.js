@@ -21,7 +21,20 @@ try { fbAuth = firebase.auth(); } catch (e) { console.error('Auth init error', e
 // REPLACE this with the real email of each staff member who is allowed to sign up
 var ALLOWED_EMAILS = [
   'carl.cocktailsmanila@gmail.com',
-  'meanne@gmail.com'
+  'meanne@gmail.com',
+  'evelyn.cocktailsmanila@gmail.com',
+  'guiller.cocktailsmanila@gmail.com',
+  'ace.cocktailsmanila@gmail.com',
+  'eman.cocktailsmanila@gmail.com',
+  'jays.cocktailsmanila@gmail.com',
+  'jewel.cocktailsmanila@gmail.com',
+  'jissel.cocktailsmanila@gmail.com',
+  'johnpaul.cocktailsmanila@gmail.com',
+  'johnwilfred.cocktailsmanila@gmail.com',
+  'patrick.cocktailsmanila@gmail.com',
+  'paula.cocktailsmanila@gmail.com',
+  'sofia.cocktailsmanila@gmail.com',
+  'dan.cocktailsmanila@gmail.com'
 ];
 
 /* CHANGED: role system — emails listed here get FULL ACCESS (admin).
@@ -47,7 +60,20 @@ function canEditRecord(ts) {
    Used to auto-fill the "Lead" field with whoever is logged in. */
 var STAFF_NAMES = {
   'carl.cocktailsmanila@gmail.com': 'Carl',
-  'meanne@gmail.com': 'Meanne'
+  'meanne@gmail.com': 'Meanne',
+  'evelyn.cocktailsmanila@gmail.com': 'Evelyn',
+  'guiller.cocktailsmanila@gmail.com': 'Guiller',
+  'ace.cocktailsmanila@gmail.com': 'Ace',
+  'eman.cocktailsmanila@gmail.com': 'Eman',
+  'jays.cocktailsmanila@gmail.com': 'Jays',
+  'jewel.cocktailsmanila@gmail.com': 'Jewel',
+  'jissel.cocktailsmanila@gmail.com': 'Jissel',
+  'johnpaul.cocktailsmanila@gmail.com': 'John Paul',
+  'johnwilfred.cocktailsmanila@gmail.com': 'John Wilfred',
+  'patrick.cocktailsmanila@gmail.com': 'Patrick',
+  'paula.cocktailsmanila@gmail.com': 'Paula',
+  'sofia.cocktailsmanila@gmail.com': 'Sofia',
+  'dan.cocktailsmanila@gmail.com': 'Dan'
 };
 
 function currentUserName() {
