@@ -1069,7 +1069,9 @@ function renderEventDetail(id) {
       '<button class="btn btn-soft" onclick="saveAndExitEvent()">Save</button>' +
       '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">Close Event</button>' +
     '</div>' +
-    '<div class="hint" style="text-align:center;margin-top:6px">Save = keep encoding later. Close Event = the event is finished and all items are accounted for.</div></div>';
+    '<div class="hint" style="text-align:center;margin-top:6px">Save = keep encoding later. Close Event = the event is finished and all items are accounted for.</div></div>' +
+    /* CHANGED: spacer so the last cards can scroll above the fixed bar */
+    '<div style="height:120px"></div>';
   } else if (isAdmin()) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete This Event</button>' +
