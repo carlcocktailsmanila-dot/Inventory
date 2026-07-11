@@ -1064,9 +1064,12 @@ function renderEventDetail(id) {
   if (!closed) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       (isAdmin() ? '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' : '') +
+      /* CHANGED: Save button — everything saves automatically, but this gives
+         checkers a clear "done encoding" action that is NOT Close Event */
+      '<button class="btn" onclick="saveAndExitEvent()">Save</button>' +
       '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">Close Event</button>' +
     '</div>';
-    html += '<div class="hint" style="text-align:center;margin-top:6px">Close this once the event is done and all items have been accounted for.</div>';
+    html += '<div class="hint" style="text-align:center;margin-top:6px">Save = keep encoding later. Close Event = the event is finished and all items are accounted for.</div>';
   } else if (isAdmin()) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete This Event</button>' +
@@ -1109,7 +1112,6 @@ function openReleaseQty(evId, itemId) {
   var html = '<h3>Release: ' + esc(it.name) + '</h3>' +
     '<div class="hint" style="margin-bottom:10px">Available now: <b>' + avail + '</b> of ' + ownedEffective(it) + ' ' + esc(it.unit) + '</div>' +
     '<div class="field"><label>How many ' + esc(it.unit) + ' to release?</label><input id="r_qty" type="number" inputmode="numeric" min="1" placeholder="0" autofocus></div>' +
-    '<div class="field"><label>Notes (optional)</label><input id="r_notes" placeholder="e.g. included in Van 2"></div>' +
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="doRelease(\'' + evId + '\',\'' + itemId + '\')">Save Release</button></div>';
   openModal(html);
 }
@@ -1121,7 +1123,7 @@ function doRelease(evId, itemId) {
   if (qty <= 0) { alert('Enter how many to release.'); return; }
   var avail = availableNow(it);
   if (qty > avail && !confirm('Warning: only ' + avail + ' ' + it.name + ' available. Proceed with ' + qty + ' anyway?')) return;
-  var notes = document.getElementById('r_notes').value.trim();
+  var notes = '';
   var line = null;
   (ev.lines || []).forEach(function (l) { if (l.itemId === itemId) line = l; });
   if (line) {
@@ -1267,6 +1269,15 @@ function saveUsageEdit(evId, usageIdx, remove) {
   logAction('Edited usage of ' + (it ? it.name : '?') + ' — ' + ev.name);
   saveDB(); closeModal(); render();
   toast('Updated');
+}
+
+/* CHANGED: reassurance save — data already auto-saves on every action, but
+   this gives an explicit "done for now" button so no one taps Close Event
+   just to save their encoding */
+function saveAndExitEvent() {
+  saveDB();
+  toast('Saved — you can come back to this event anytime');
+  go('events');
 }
 
 function closeEvent(evId) {
