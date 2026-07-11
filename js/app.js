@@ -1066,7 +1066,7 @@ function renderEventDetail(id) {
       (isAdmin() ? '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' : '') +
       /* CHANGED: Save button — everything saves automatically, but this gives
          checkers a clear "done encoding" action that is NOT Close Event */
-      '<button class="btn" onclick="saveAndExitEvent()">Save</button>' +
+      '<button class="btn btn-soft" onclick="saveAndExitEvent()">Save</button>' +
       '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">Close Event</button>' +
     '</div>';
     html += '<div class="hint" style="text-align:center;margin-top:6px">Save = keep encoding later. Close Event = the event is finished and all items are accounted for.</div>';
