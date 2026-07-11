@@ -1666,6 +1666,14 @@ function myLeadName() {
   return found || currentUserName();
 }
 
+/* CHANGED: initials for the profile avatar — "Evelyn" → "E", "John Paul" → "JP" */
+function nameInitials(n) {
+  var parts = (n || '').trim().split(/\s+/);
+  if (!parts[0]) return '?';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 function renderLeadDetail(name) {
   /* CHANGED: staff can only open their own lead record */
   if (!isAdmin() && (name || '').toLowerCase() !== currentUserName().toLowerCase()) {
@@ -1680,8 +1688,8 @@ function renderLeadDetail(name) {
   var total = evs.length;
   /* CHANGED: back button is admin-only — for staff, the Leads tab IS this page */
   var html = isAdmin() ? '<button class="back-btn" onclick="go(\'leads\')">← Back to Records</button>' : '';
-  /* CHANGED: richer header — open/closed breakdown, last event date, and a
-     cleared/pending status badge (all-time view; Home shows this month) */
+  /* CHANGED: profile-style header — centered initials avatar, name, summary
+     line, and cleared/pending status badge */
   var openCount = 0, closedCount = 0, pendTotal = 0, lastDate = '';
   evs.forEach(function (ev) {
     if (ev.status === 'open') { openCount++; pendTotal += eventPending(ev); }
@@ -1691,15 +1699,12 @@ function renderLeadDetail(name) {
   var statusBadge = pendTotal > 0
     ? '<span class="badge b-red">' + pendTotal + ' item(s) to return</span>'
     : '<span class="badge b-green">All cleared</span>';
-  html += '<div class="card"><div class="row"><div class="thumb">' + svgIcon('user', 22) + '</div><div class="grow">' +
-    '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
-    '<div class="item-meta">' + total + ' event record(s) · ' + openCount + ' open · ' + closedCount + ' closed</div>' +
-    (lastDate ? '<div class="item-meta">Last event: ' + fmtDate(lastDate) + '</div>' : '') +
-    '</div>' +
-    /* CHANGED: admin can rename a lead — updates the name on all their events */
-    (isAdmin() ? '<button class="btn btn-sm" onclick="openRenameLead(window._leadDetailName)">' + svgIcon('edit', 13) + ' Rename</button>' : '') +
-    '</div>' +
-    '<div style="margin-top:8px">' + statusBadge + '</div>' +
+  html += '<div class="card lead-profile">' +
+    '<div class="lp-avatar">' + esc(nameInitials(name)) + '</div>' +
+    '<div class="lp-name">' + esc(name) + '</div>' +
+    '<div class="item-meta">' + total + ' event record(s)' + (lastDate ? ' · Last event: ' + fmtDate(lastDate) : '') + '</div>' +
+    '<div style="margin-top:10px">' + statusBadge + '</div>' +
+    (isAdmin() ? '<div style="margin-top:10px"><button class="btn btn-sm" onclick="openRenameLead(window._leadDetailName)">' + svgIcon('edit', 13) + ' Rename</button></div>' : '') +
     '</div>';
   /* CHANGED: searchable event list so a specific event can be found quickly */
   html += '<input class="search" placeholder="Search event, venue, or date…" value="' + esc(leadDetailSearch) + '" oninput="leadDetailSearch=this.value;refreshLeadEvents()">';
