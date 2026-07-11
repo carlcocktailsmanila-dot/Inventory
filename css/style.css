@@ -358,6 +358,12 @@ img.thumb-lg { border: 1px solid var(--line); }
   color: #fff;
 }
 .btn-primary:active { background: var(--green-dark); }
+.btn-soft {
+  background: var(--green-soft);
+  border-color: #bfe0d1;
+  color: var(--green-dark);
+}
+.btn-soft:active { background: #d8ecdf; }
 .btn-danger {
   background: #fdecec;
   border-color: #f5cccc;
