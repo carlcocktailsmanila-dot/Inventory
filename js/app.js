@@ -229,6 +229,7 @@ var dbFilter = 'all';
 var dbTab = 'event';   // 'event' | 'toolbox' | 'food'
 var dbMaterialFilter = 'all';
 var foodCatFilter = 'all'; /* CHANGED: category filter for the Food tab */
+var toolboxView = 'returnable'; /* CHANGED: Toolbox view — 'returnable' | 'disposable' */
 var photoTemp = null;
 var photoCallback = null;
 var pickerCallback = null;
@@ -1404,15 +1405,27 @@ function renderToolbox() {
   if (!items.length) html += '<div class="section-title">Toolbox</div>' +
     '<div class="empty">No toolbox items yet. Add one in the Database tab.</div>';
 
-  /* CHANGED: returnables and disposables are shown in separate sections */
+  /* CHANGED: switchable views — pick Returnable or Disposables so neither
+     list gets buried when items grow */
   var returnables = items.filter(function (it) { return !it.disposable; });
   var disposables = items.filter(function (it) { return it.disposable; });
 
-  if (returnables.length) html += '<div class="section-title">Returnable</div>';
-  returnables.forEach(function (it) { html += toolboxReturnableCard(it); });
+  if (items.length) {
+    html += '<div class="chips">' +
+      '<button class="chip' + (toolboxView === 'returnable' ? ' active' : '') + '" onclick="toolboxView=\'returnable\';render()">Returnable (' + returnables.length + ')</button>' +
+      '<button class="chip' + (toolboxView === 'disposable' ? ' active' : '') + '" onclick="toolboxView=\'disposable\';render()">Disposables (' + disposables.length + ')</button>' +
+      '</div>';
 
-  if (disposables.length) html += '<div class="section-title">Disposables</div>';
-  disposables.forEach(function (it) { html += toolboxDisposableCard(it); });
+    if (toolboxView === 'returnable') {
+      html += '<div class="section-title">Returnable</div>';
+      if (!returnables.length) html += '<div class="empty">No returnable toolbox items yet.</div>';
+      returnables.forEach(function (it) { html += toolboxReturnableCard(it); });
+    } else {
+      html += '<div class="section-title">Disposables</div>';
+      if (!disposables.length) html += '<div class="empty">No disposable items yet.</div>';
+      disposables.forEach(function (it) { html += toolboxDisposableCard(it); });
+    }
+  }
 
   html += '<div class="hint" style="margin:4px 2px 14px">Releasing/returning returnable items is done inside each <b>Event</b>. Disposables are restocked via "＋ Delivery".</div>';
   return html;
