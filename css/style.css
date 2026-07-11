@@ -364,13 +364,23 @@ img.thumb-lg { border: 1px solid var(--line); }
   color: var(--green-dark);
 }
 .btn-soft:active { background: #d8ecdf; }
-/* CHANGED: keeps the Save / Close Event buttons visible while scrolling */
+/* CHANGED: keeps the Save / Close Event buttons visible while scrolling —
+   fixed to the screen, floating above the bottom nav */
 .event-actions {
-  position: sticky;
-  bottom: calc(78px + env(safe-area-inset-bottom));
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom));
   background: var(--bg);
-  padding: 10px 0 6px;
-  z-index: 40;
+  border-top: 1px solid var(--line);
+  padding: 10px 16px;
+  z-index: 60;
+}
+.event-actions .btn-row,
+.event-actions .hint {
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .btn-danger {
   background: #fdecec;
