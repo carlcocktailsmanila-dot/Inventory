@@ -1032,26 +1032,13 @@ function renderEventDetail(id) {
     tile(money(eventUsageCost(ev, 'food')), 'Food expenses') +
     '</div>';
   html += '<div class="section-title">Items Released (returnable)</div>';
-  var lines = ev.lines || [];
-  if (!lines.length) html += '<div class="empty">No items released yet.</div>';
-  lines.forEach(function (l, idx) {
-    var it = getItem(l.itemId);
-    var name2 = it ? it.name : '(item deleted)';
-    var p = linePending(l);
-    html += '<div class="card">' +
-      '<div class="row">' + (it ? photoThumb(it) : '<div class="thumb">?</div>') +
-      '<div class="grow"><div class="item-name">' + esc(name2) + '</div>' +
-      (l.notes ? '<div class="item-meta">' + esc(l.notes) + '</div>' : '') + '</div>' +
-      (!closed ? (canEditRecord(l.ts) ? '<button class="btn btn-sm" style="margin-right:6px" onclick="openEditRelease(\'' + ev.id + '\',' + idx + ')" title="Edit released quantity">' + svgIcon('edit', 14) + '</button>' : '') +
-                 '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Return</button>' : '') +
-      '</div>' +
-      '<div class="line-grid">' +
-        '<div><div class="lg-num">' + l.out + '</div><div class="lg-label">OUT</div></div>' +
-        '<div><div class="lg-num">' + (l.returned || 0) + '</div><div class="lg-label">RETURNED</div></div>' +
-        '<div><div class="lg-num">' + ((l.damaged || 0) + (l.lost || 0)) + '</div><div class="lg-label">DAMAGED/LOST</div></div>' +
-        '<div class="' + (p > 0 ? 'pend' : 'ok') + '"><div class="lg-num">' + p + '</div><div class="lg-label">PENDING</div></div>' +
-      '</div></div>';
-  });
+  /* CHANGED: live search so the checker can find an item to Return without
+     scrolling through the whole list */
+  if (window._evSearchFor !== ev.id) { eventItemSearch = ''; window._evSearchFor = ev.id; }
+  if ((ev.lines || []).length > 0) {
+    html += '<input class="search" placeholder="Search released item…" value="' + esc(eventItemSearch) + '" oninput="eventItemSearch=this.value;refreshEvLines()">';
+  }
+  html += '<div id="evLinesList">' + evLinesHTML(ev, closed) + '</div>';
   if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button></div>';
 
   html += '<div class="section-title">Disposables Used</div>';
@@ -1272,6 +1259,46 @@ function saveUsageEdit(evId, usageIdx, remove) {
   logAction('Edited usage of ' + (it ? it.name : '?') + ' — ' + ev.name);
   saveDB(); closeModal(); render();
   toast('Updated');
+}
+
+/* CHANGED: searchable released-items list — keeps the original line index so
+   Return/Edit buttons still point to the right record even when filtered */
+var eventItemSearch = '';
+
+function evLinesHTML(ev, closed) {
+  var lines = ev.lines || [];
+  if (!lines.length) return '<div class="empty">No items released yet.</div>';
+  var q = eventItemSearch.trim().toLowerCase();
+  var html = '';
+  var shown = 0;
+  lines.forEach(function (l, idx) {
+    var it = getItem(l.itemId);
+    var name2 = it ? it.name : '(item deleted)';
+    if (q && name2.toLowerCase().indexOf(q) < 0) return;
+    shown++;
+    var p = linePending(l);
+    html += '<div class="card">' +
+      '<div class="row">' + (it ? photoThumb(it) : '<div class="thumb">?</div>') +
+      '<div class="grow"><div class="item-name">' + esc(name2) + '</div>' +
+      (l.notes ? '<div class="item-meta">' + esc(l.notes) + '</div>' : '') + '</div>' +
+      (!closed ? (canEditRecord(l.ts) ? '<button class="btn btn-sm" style="margin-right:6px" onclick="openEditRelease(\'' + ev.id + '\',' + idx + ')" title="Edit released quantity">' + svgIcon('edit', 14) + '</button>' : '') +
+                 '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Return</button>' : '') +
+      '</div>' +
+      '<div class="line-grid">' +
+        '<div><div class="lg-num">' + l.out + '</div><div class="lg-label">OUT</div></div>' +
+        '<div><div class="lg-num">' + (l.returned || 0) + '</div><div class="lg-label">RETURNED</div></div>' +
+        '<div><div class="lg-num">' + ((l.damaged || 0) + (l.lost || 0)) + '</div><div class="lg-label">DAMAGED/LOST</div></div>' +
+        '<div class="' + (p > 0 ? 'pend' : 'ok') + '"><div class="lg-num">' + p + '</div><div class="lg-label">PENDING</div></div>' +
+      '</div></div>';
+  });
+  if (q && !shown) return '<div class="empty">No released item matches "' + esc(eventItemSearch) + '".</div>';
+  return html;
+}
+
+function refreshEvLines() {
+  var ev = getEvent(route.eventId);
+  var el = document.getElementById('evLinesList');
+  if (ev && el) el.innerHTML = evLinesHTML(ev, ev.status === 'closed');
 }
 
 /* CHANGED: reassurance save — data already auto-saves on every action, but
