@@ -86,6 +86,24 @@ function currentUserName() {
   return n.charAt(0).toUpperCase() + n.slice(1);
 }
 
+/* CHANGED: Lead dropdown options — staff names only (admins excluded).
+   If an old event has a lead name not in the list, it's kept so editing
+   doesn't accidentally change it. */
+function staffNameOptions(selected) {
+  var names = [];
+  for (var e in STAFF_NAMES) {
+    if (ADMIN_EMAILS.indexOf(e) >= 0) continue;
+    if (names.indexOf(STAFF_NAMES[e]) < 0) names.push(STAFF_NAMES[e]);
+  }
+  names.sort();
+  if (selected && names.indexOf(selected) < 0) names.unshift(selected);
+  var html = '<option value=""' + (!selected ? ' selected' : '') + '>— Select lead —</option>';
+  html += names.map(function (n) {
+    return '<option value="' + esc(n) + '"' + (n === selected ? ' selected' : '') + '>' + esc(n) + '</option>';
+  }).join('');
+  return html;
+}
+
 var currentUser = null;
 var authMode = 'signin';   // 'signin' or 'signup'
 
@@ -957,7 +975,7 @@ function openEventForm(id) {
       '<div class="field"><label>Venue</label><input id="e_venue" value="' + esc(ev ? ev.venue : '') + '" placeholder="e.g. Tagaytay"></div>' +
     '</div>' +
     '<div class="field-row">' +
-      '<div class="field"><label>Lead (in-charge of the event)</label><input id="e_lead" value="' + esc(ev ? ev.lead : currentUserName()) + '" placeholder="Name"></div>' +
+      '<div class="field"><label>Lead (in-charge of the event)</label><select id="e_lead">' + staffNameOptions(ev ? ev.lead : (isAdmin() ? '' : currentUserName())) + '</select></div>' +
       '<div class="field"><label>Checker (encoding)</label><input id="e_checker" value="' + esc(ev ? ev.checker : '') + '" placeholder="Name"></div>' +
     '</div>' +
     '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveEventForm(' + (ev ? '\'' + ev.id + '\'' : 'null') + ')">Save</button></div>';
