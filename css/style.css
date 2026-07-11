@@ -364,6 +364,29 @@ img.thumb-lg { border: 1px solid var(--line); }
   color: var(--green-dark);
 }
 .btn-soft:active { background: #d8ecdf; }
+/* CHANGED: profile-style header on the Records page */
+.lead-profile {
+  text-align: center;
+  padding: 24px 16px 18px;
+}
+.lp-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  border: 2px solid #bfe0d1;
+  font-weight: 800;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+.lp-name {
+  font-size: 19px;
+  font-weight: 800;
+}
 /* CHANGED: keeps the Save / Close Event buttons visible while scrolling —
    fixed to the screen, floating above the bottom nav */
 .event-actions {
