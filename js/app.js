@@ -220,6 +220,9 @@ var route = { tab: 'events', eventId: null, lead: null };
 try {
   var _savedRoute = JSON.parse(localStorage.getItem('cci-route') || 'null');
   if (_savedRoute && _savedRoute.tab) route = _savedRoute;
+  /* CHANGED: restore the event back-button origin too */
+  var _savedBack = JSON.parse(localStorage.getItem('cci-evback') || 'null');
+  if (_savedBack && _savedBack.tab) window._evBackTo = _savedBack;
 } catch (e) { }
 var dbSearch = '';
 var dbFilter = 'all';
@@ -445,6 +448,8 @@ function go(tab, param) {
      back button returns to Records if they came from there */
   if (tab === 'eventDetail' && route.tab !== 'eventDetail') {
     window._evBackTo = { tab: route.tab, lead: route.lead };
+    /* CHANGED: persist so the back button still knows the origin after refresh */
+    try { localStorage.setItem('cci-evback', JSON.stringify(window._evBackTo)); } catch (e) { }
   }
   route.tab = tab;
   route.eventId = tab === 'eventDetail' ? param : null;
@@ -2290,8 +2295,9 @@ if (fbAuth) {
       stopCloudSync(); /* CHANGED: disconnect cleanly on logout */
       /* CHANGED: forget the remembered tab on sign-out, so every fresh
          sign-in starts at Home (refresh while logged in still keeps the tab) */
-      try { localStorage.removeItem('cci-route'); } catch (e) { }
+      try { localStorage.removeItem('cci-route'); localStorage.removeItem('cci-evback'); } catch (e) { }
       route = { tab: 'home', eventId: null, lead: null };
+      window._evBackTo = null;
       renderLoginScreen();
     }
     hideSplash();
