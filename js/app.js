@@ -1859,8 +1859,8 @@ function openSetUsername() {
         '<div class="hint">Usernames can only be set once. If you really need to change it, contact the admin.</div>';
     } else {
       el.innerHTML =
-        '<div class="hint" style="margin-bottom:10px">Create a short username so you can sign in without typing your full email. 3-20 characters: letters, numbers, dots, or underscores. <b>You can only set this once</b>, so choose carefully.</div>' +
-        '<div class="field"><label>Username</label><input id="su_name" autocapitalize="none" placeholder="e.g. carlmalom.cm"></div>' +
+        '<div class="hint" style="margin-bottom:10px">Create a short username so you can sign in without typing your full email. It must <b>end with .cm</b> (for Cocktails Manila) — for example: carlmalon.cm. Letters, numbers, dots, or underscores only. <b>You can only set this once</b>, so choose carefully.</div>' +
+        '<div class="field"><label>Username</label><input id="su_name" autocapitalize="none" placeholder="e.g. carlmalon.cm"></div>' +
         '<div class="btn-row"><button class="btn btn-primary btn-block" onclick="saveUsername()">Save Username</button></div>';
     }
   }).catch(function () {
@@ -1873,6 +1873,12 @@ function saveUsername() {
   var uname = document.getElementById('su_name').value.trim().toLowerCase();
   if (!/^[a-z0-9._]{3,20}$/.test(uname)) {
     alert('Username must be 3-20 characters: letters, numbers, dots, or underscores only.');
+    return;
+  }
+  /* CHANGED: every username must end with .cm so the whole team matches,
+     e.g. carlmalon.cm */
+  if (!/\.cm$/.test(uname)) {
+    alert('Username must end with .cm — for example: carlmalon.cm');
     return;
   }
   var myEmail = currentUser.email.toLowerCase();
