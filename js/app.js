@@ -1680,12 +1680,27 @@ function renderLeadDetail(name) {
   var total = evs.length;
   /* CHANGED: back button is admin-only — for staff, the Leads tab IS this page */
   var html = isAdmin() ? '<button class="back-btn" onclick="go(\'leads\')">← Back to Records</button>' : '';
+  /* CHANGED: richer header — open/closed breakdown, last event date, and a
+     cleared/pending status badge (all-time view; Home shows this month) */
+  var openCount = 0, closedCount = 0, pendTotal = 0, lastDate = '';
+  evs.forEach(function (ev) {
+    if (ev.status === 'open') { openCount++; pendTotal += eventPending(ev); }
+    else closedCount++;
+    if ((ev.date || '') > lastDate) lastDate = ev.date || '';
+  });
+  var statusBadge = pendTotal > 0
+    ? '<span class="badge b-red">' + pendTotal + ' item(s) to return</span>'
+    : '<span class="badge b-green">All cleared</span>';
   html += '<div class="card"><div class="row"><div class="thumb">' + svgIcon('user', 22) + '</div><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(name) + '</div>' +
-    '<div class="item-meta">' + total + ' event record(s)</div></div>' +
+    '<div class="item-meta">' + total + ' event record(s) · ' + openCount + ' open · ' + closedCount + ' closed</div>' +
+    (lastDate ? '<div class="item-meta">Last event: ' + fmtDate(lastDate) + '</div>' : '') +
+    '</div>' +
     /* CHANGED: admin can rename a lead — updates the name on all their events */
     (isAdmin() ? '<button class="btn btn-sm" onclick="openRenameLead(window._leadDetailName)">' + svgIcon('edit', 13) + ' Rename</button>' : '') +
-    '</div></div>';
+    '</div>' +
+    '<div style="margin-top:8px">' + statusBadge + '</div>' +
+    '</div>';
   /* CHANGED: searchable event list so a specific event can be found quickly */
   html += '<input class="search" placeholder="Search event, venue, or date…" value="' + esc(leadDetailSearch) + '" oninput="leadDetailSearch=this.value;refreshLeadEvents()">';
   html += '<div id="leadEventList">' + leadEventsHTML(name) + '</div>';
