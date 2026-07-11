@@ -1401,38 +1401,48 @@ function renderToolbox() {
     tile(String(lowCount), 'Need reordering', lowCount ? 'bad' : '') +
     '</div>';
 
-  html += '<div class="section-title">Toolbox</div>';
-  if (!items.length) html += '<div class="empty">No toolbox items yet. Add one in the Database tab.</div>';
+  if (!items.length) html += '<div class="section-title">Toolbox</div>' +
+    '<div class="empty">No toolbox items yet. Add one in the Database tab.</div>';
 
-  items.forEach(function (it) {
-    if (it.disposable) {
-      var low = isLow(it);
-      html += '<div class="card"><div class="row">' + photoThumb(it) +
-        '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
-        '<div class="item-meta">Disposable · Reorder point: ' + (it.reorderPoint || 0) + ' ' + esc(it.unit) + '</div>' +
-        (low ? '<span class="badge b-red">Reorder now!</span>' : '<span class="badge b-green">Stock OK</span>') +
-        '</div>' +
-        '<div><div class="stat-num"' + (low ? ' style="color:var(--red)"' : '') + '>' + (it.stock || 0) + '</div><div class="stat-label">' + esc(it.unit) + '</div>' +
-        '<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="openDeliveryForm(\'' + it.id + '\')">＋ Delivery</button></div>' +
-        '</div></div>';
-    } else {
-      /* CHANGED: show avail vs ORIGINAL owned + Incomplete status if may damaged/lost */
-      var out = pendingOut(it.id);
-      var dl = totalDamagedLost(it.id);
-      var statusText;
-      if (out > 0) statusText = '' + out + ' currently out (at an event)';
-      else if (dl > 0) statusText = '' + dl + ' damaged/lost — Incomplete';
-      else statusText = 'Complete in storage';
-      html += '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
-        '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
-        '<div class="item-meta">Returnable · ' + statusText + '</div></div>' +
-        '<div><div class="stat-num"' + (dl > 0 ? ' style="color:var(--red)"' : '') + '>' + availableNow(it) + '/' + (it.owned || 0) + '</div><div class="stat-label"' + (dl > 0 ? ' style="color:var(--red);font-weight:600"' : '') + '>' + (dl > 0 ? 'Incomplete' : 'available') + '</div></div>' +
-        '</div></div>';
-    }
-  });
+  /* CHANGED: returnables and disposables are shown in separate sections */
+  var returnables = items.filter(function (it) { return !it.disposable; });
+  var disposables = items.filter(function (it) { return it.disposable; });
+
+  if (returnables.length) html += '<div class="section-title">Returnable</div>';
+  returnables.forEach(function (it) { html += toolboxReturnableCard(it); });
+
+  if (disposables.length) html += '<div class="section-title">Disposables</div>';
+  disposables.forEach(function (it) { html += toolboxDisposableCard(it); });
 
   html += '<div class="hint" style="margin:4px 2px 14px">Releasing/returning returnable items is done inside each <b>Event</b>. Disposables are restocked via "＋ Delivery".</div>';
   return html;
+}
+
+/* CHANGED: toolbox card templates, split by type */
+function toolboxReturnableCard(it) {
+  var out = pendingOut(it.id);
+  var dl = totalDamagedLost(it.id);
+  var statusText;
+  if (out > 0) statusText = '' + out + ' currently out (at an event)';
+  else if (dl > 0) statusText = '' + dl + ' damaged/lost — Incomplete';
+  else statusText = 'Complete in storage';
+  return '<div class="card tappable" onclick="openItemForm(\'' + it.id + '\')"><div class="row">' + photoThumb(it) +
+    '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
+    '<div class="item-meta">Returnable · ' + statusText + '</div></div>' +
+    '<div><div class="stat-num"' + (dl > 0 ? ' style="color:var(--red)"' : '') + '>' + availableNow(it) + '/' + (it.owned || 0) + '</div><div class="stat-label"' + (dl > 0 ? ' style="color:var(--red);font-weight:600"' : '') + '>' + (dl > 0 ? 'Incomplete' : 'available') + '</div></div>' +
+    '</div></div>';
+}
+
+function toolboxDisposableCard(it) {
+  var low = isLow(it);
+  return '<div class="card"><div class="row">' + photoThumb(it) +
+    '<div class="grow"><div class="item-name">' + esc(it.name) + '</div>' +
+    '<div class="item-meta">Disposable · Reorder point: ' + (it.reorderPoint || 0) + ' ' + esc(it.unit) + '</div>' +
+    (low ? '<span class="badge b-red">Reorder now!</span>' : '<span class="badge b-green">Stock OK</span>') +
+    '</div>' +
+    '<div><div class="stat-num"' + (low ? ' style="color:var(--red)"' : '') + '>' + (it.stock || 0) + '</div><div class="stat-label">' + esc(it.unit) + '</div>' +
+    '<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="openDeliveryForm(\'' + it.id + '\')">＋ Delivery</button></div>' +
+    '</div></div>';
 }
 
 function byName(a, b) { return a.name.localeCompare(b.name); }
