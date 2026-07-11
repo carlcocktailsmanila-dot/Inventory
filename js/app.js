@@ -1402,6 +1402,9 @@ function renderToolbox() {
     tile(String(lowCount), 'Need reordering', lowCount ? 'bad' : '') +
     '</div>';
 
+  /* CHANGED: same low-stock notice banner as the Food tab */
+  if (lowCount) html += '<div class="notice red">' + lowCount + ' toolbox item(s) low on stock.</div>';
+
   if (!items.length) html += '<div class="section-title">Toolbox</div>' +
     '<div class="empty">No toolbox items yet. Add one in the Database tab.</div>';
 
