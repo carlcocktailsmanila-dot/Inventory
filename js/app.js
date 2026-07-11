@@ -354,7 +354,8 @@ var SVG_ICONS = {
   calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
   pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
   check: '<polyline points="20 6 9 17 4 12"/>',
-  sheet: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>'
+  sheet: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>',
+  trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>'
 };
 
 function svgIcon(name, size) {
@@ -1282,6 +1283,27 @@ function saveAndExitEvent() {
   go('events');
 }
 
+/* CHANGED: admin-only full reset — deletes ALL event records so every item
+   automatically becomes available again (availability and damage totals are
+   computed from event records). Items, food, deliveries, and logs stay. */
+function resetAllEvents() {
+  if (!isAdmin()) return;
+  var count = db.events.length;
+  if (!count) { toast('No event records to clear'); return; }
+  if (!confirm('RESET ALL EVENT RECORDS?\n\nThis will permanently delete all ' + count + ' event record(s), including damage/lost history and staff records. Every item will return to its full owned quantity.\n\nItems, food, deliveries, and the activity log will NOT be deleted.\n\nTip: use Export Backup first if you want a copy.')) return;
+  var word = prompt('Final check — type RESET (all capital letters) to continue:');
+  if (word !== 'RESET') {
+    if (word !== null) alert('Reset cancelled — you did not type RESET.');
+    return;
+  }
+  db.events = [];
+  logAction('RESET: cleared all event records (' + count + ')');
+  saveDB();
+  closeModal();
+  go('home');
+  toast('All event records cleared — all items are back to full quantity');
+}
+
 function closeEvent(evId) {
   var ev = getEvent(evId);
   var pend = eventPending(ev);
@@ -1796,7 +1818,8 @@ function openMenu() {
       ? '<button class="menu-item" onclick="openActivityLog()">' + svgIcon('log') + ' Activity Log</button>' +
         '<button class="menu-item" onclick="openExportSheet()">' + svgIcon('sheet') + ' Export to Excel / Sheets</button>' +
         '<button class="menu-item" onclick="exportData()">' + svgIcon('download') + ' Export Backup (download data)</button>' +
-        '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">' + svgIcon('upload') + ' Import Backup (restore data)</button>'
+        '<button class="menu-item" onclick="document.getElementById(\'importInput\').click()">' + svgIcon('upload') + ' Import Backup (restore data)</button>' +
+        '<button class="menu-item" style="color:#b23b3b" onclick="resetAllEvents()">' + svgIcon('trash') + ' Reset All Event Records</button>'
       : '') +
     '<button class="menu-item" onclick="openSetUsername()">' + svgIcon('user') + ' Set Username</button>' +
     '<button class="menu-item" onclick="openChangePassword()">' + svgIcon('lock') + ' Change Password</button>' +
