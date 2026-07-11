@@ -441,6 +441,11 @@ function eventUsageCost(ev, category) {
    NAVIGATION
    ============================================================ */
 function go(tab, param) {
+  /* CHANGED: remember where the user came from when opening an event, so the
+     back button returns to Records if they came from there */
+  if (tab === 'eventDetail' && route.tab !== 'eventDetail') {
+    window._evBackTo = { tab: route.tab, lead: route.lead };
+  }
   route.tab = tab;
   route.eventId = tab === 'eventDetail' ? param : null;
   route.lead = tab === 'leadDetail' ? param : null;
@@ -448,6 +453,21 @@ function go(tab, param) {
   try { localStorage.setItem('cci-route', JSON.stringify(route)); } catch (e) { }
   render();
   window.scrollTo(0, 0);
+}
+
+/* CHANGED: smart back from an event — Records if they came from Records,
+   otherwise Events */
+function goBackFromEvent() {
+  var b = window._evBackTo;
+  if (b && b.tab === 'leadDetail' && b.lead) { go('leadDetail', b.lead); return; }
+  if (b && b.tab === 'leads') { go('leads'); return; }
+  go('events');
+}
+
+function evBackBtnHTML() {
+  var b = window._evBackTo;
+  var label = (b && (b.tab === 'leadDetail' || b.tab === 'leads')) ? '← Back to Records' : '← Back to Events';
+  return '<button class="back-btn" onclick="goBackFromEvent()">' + label + '</button>';
 }
 
 function goHomeOrEvents() { go('home'); }
@@ -1009,14 +1029,14 @@ function renderEventDetail(id) {
     var myKey = currentUserName().toLowerCase();
     if ((ev.lead || '').trim().toLowerCase() !== myKey &&
         (ev.checker || '').trim().toLowerCase() !== myKey) {
-      return '<button class="back-btn" onclick="go(\'events\')">← Back to Events</button>' +
+      return evBackBtnHTML() +
         '<div class="empty">You can only view events where you are the lead or the checker.</div>';
     }
   }
   var closed = ev.status === 'closed';
   var pend = eventPending(ev);
   var issues = eventIssues(ev);
-  var html = '<button class="back-btn" onclick="go(\'events\')">← Back to Events</button>';
+  var html = evBackBtnHTML();
   html += '<div class="card"><div class="row"><div class="grow">' +
     '<div class="item-name" style="font-size:17px">' + esc(ev.name) + '</div>' +
     '<div class="item-meta">Date: ' + fmtDate(ev.date) + (ev.venue ? ' · Venue: ' + esc(ev.venue) : '') + '</div>' +
