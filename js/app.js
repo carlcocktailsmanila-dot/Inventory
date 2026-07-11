@@ -1397,10 +1397,7 @@ function renderToolbox() {
   items.sort(byName);
   var lowCount = items.filter(function (it) { return it.disposable && isLow(it); }).length;
 
-  var html = '<div class="tiles">' +
-    tile(String(items.length), 'Toolbox items') +
-    tile(String(lowCount), 'Need reordering', lowCount ? 'bad' : '') +
-    '</div>';
+  var html = '';
 
   /* CHANGED: same low-stock notice banner as the Food tab */
   if (lowCount) html += '<div class="notice red">' + lowCount + ' toolbox item(s) low on stock.</div>';
