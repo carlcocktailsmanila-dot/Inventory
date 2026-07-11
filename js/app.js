@@ -229,7 +229,7 @@ var dbFilter = 'all';
 var dbTab = 'event';   // 'event' | 'toolbox' | 'food'
 var dbMaterialFilter = 'all';
 var foodCatFilter = 'all'; /* CHANGED: category filter for the Food tab */
-var toolboxView = 'returnable'; /* CHANGED: Toolbox view — 'returnable' | 'disposable' */
+var toolboxView = 'all'; /* CHANGED: Toolbox view — 'all' | 'returnable' | 'disposable' */
 var photoTemp = null;
 var photoCallback = null;
 var pickerCallback = null;
@@ -1412,15 +1412,17 @@ function renderToolbox() {
 
   if (items.length) {
     html += '<div class="chips">' +
-      '<button class="chip' + (toolboxView === 'returnable' ? ' active' : '') + '" onclick="toolboxView=\'returnable\';render()">Returnable (' + returnables.length + ')</button>' +
-      '<button class="chip' + (toolboxView === 'disposable' ? ' active' : '') + '" onclick="toolboxView=\'disposable\';render()">Disposables (' + disposables.length + ')</button>' +
+      '<button class="chip' + (toolboxView === 'all' ? ' active' : '') + '" onclick="toolboxView=\'all\';render()">All</button>' +
+      '<button class="chip' + (toolboxView === 'returnable' ? ' active' : '') + '" onclick="toolboxView=\'returnable\';render()">Returnable</button>' +
+      '<button class="chip' + (toolboxView === 'disposable' ? ' active' : '') + '" onclick="toolboxView=\'disposable\';render()">Disposables</button>' +
       '</div>';
 
-    if (toolboxView === 'returnable') {
+    if (toolboxView === 'returnable' || toolboxView === 'all') {
       html += '<div class="section-title">Returnable</div>';
       if (!returnables.length) html += '<div class="empty">No returnable toolbox items yet.</div>';
       returnables.forEach(function (it) { html += toolboxReturnableCard(it); });
-    } else {
+    }
+    if (toolboxView === 'disposable' || toolboxView === 'all') {
       html += '<div class="section-title">Disposables</div>';
       if (!disposables.length) html += '<div class="empty">No disposable items yet.</div>';
       disposables.forEach(function (it) { html += toolboxDisposableCard(it); });
