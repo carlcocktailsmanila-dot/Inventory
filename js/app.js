@@ -1062,14 +1062,14 @@ function renderEventDetail(id) {
   if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button></div>';
 
   if (!closed) {
-    html += '<div class="btn-row" style="margin-top:16px">' +
+    html += '<div class="event-actions"><div class="btn-row">' +
       (isAdmin() ? '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete</button>' : '') +
       /* CHANGED: Save button — everything saves automatically, but this gives
          checkers a clear "done encoding" action that is NOT Close Event */
       '<button class="btn btn-soft" onclick="saveAndExitEvent()">Save</button>' +
       '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">Close Event</button>' +
-    '</div>';
-    html += '<div class="hint" style="text-align:center;margin-top:6px">Save = keep encoding later. Close Event = the event is finished and all items are accounted for.</div>';
+    '</div>' +
+    '<div class="hint" style="text-align:center;margin-top:6px">Save = keep encoding later. Close Event = the event is finished and all items are accounted for.</div></div>';
   } else if (isAdmin()) {
     html += '<div class="btn-row" style="margin-top:16px">' +
       '<button class="btn btn-danger" onclick="deleteEvent(\'' + ev.id + '\')">Delete This Event</button>' +
