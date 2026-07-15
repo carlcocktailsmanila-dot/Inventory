@@ -1096,10 +1096,14 @@ function renderEventDetail(id) {
   if (!closed && pend > 0) html += '<div class="notice red">' + pend + ' item(s) not yet returned.</div>';
   if (!closed && pend === 0 && (ev.lines || []).length) html += '<div class="notice green">All items returned. This event can now be closed.</div>';
   if (closed && issues > 0) html += '<div class="notice amber">' + issues + ' item(s) damaged or lost in this event (' + money(eventDamageValue(ev)) + ').</div>';
-  html += '<div class="tiles">' +
-    tile(money(eventValueOut(ev)), 'Value of items released') +
-    tile(money(eventUsageCost(ev, 'food')), 'Food expenses') +
-    '</div>';
+  /* CHANGED: peso tiles are hidden from event staff to avoid confusion —
+     admin and checkers still see them */
+  if (isAdmin() || isChecker()) {
+    html += '<div class="tiles">' +
+      tile(money(eventValueOut(ev)), 'Value of items released') +
+      tile(money(eventUsageCost(ev, 'food')), 'Food expenses') +
+      '</div>';
+  }
   html += '<div class="section-title">Items Released (returnable)</div>';
   /* CHANGED: live search so the checker can find an item to Return without
      scrolling through the whole list */
