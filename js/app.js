@@ -34,9 +34,7 @@ var ALLOWED_EMAILS = [
   'patrick.cocktailsmanila@gmail.com',
   'paula.cocktailsmanila@gmail.com',
   'sofia.cocktailsmanila@gmail.com',
-  'dan.cocktailsmanila@gmail.com',
-  'rainier.cocktailsmanila@gmail.com',
-  'marvin.cocktailsmanila@gmail.com'
+  'dan.cocktailsmanila@gmail.com'
 ];
 
 /* CHANGED: role system — emails listed here get FULL ACCESS (admin).
@@ -65,7 +63,7 @@ function canEditRecord(ts) {
 var CHECKER_EMAILS = [
   'rainier.cocktailsmanila@gmail.com',
   'marvin.cocktailsmanila@gmail.com'
-   ];
+];
 
 function isChecker() {
   if (!currentUser || !currentUser.email) return false;
@@ -88,7 +86,9 @@ var STAFF_NAMES = {
   'patrick.cocktailsmanila@gmail.com': 'Patrick',
   'paula.cocktailsmanila@gmail.com': 'Paula',
   'sofia.cocktailsmanila@gmail.com': 'Sofia',
-  'dan.cocktailsmanila@gmail.com': 'Dan'
+  'dan.cocktailsmanila@gmail.com': 'Dan',
+  'rainier.cocktailsmanila@gmail.com': 'Rainier',
+  'marvin.cocktailsmanila@gmail.com': 'Marvin'
 };
 
 function currentUserName() {
