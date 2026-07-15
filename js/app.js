@@ -65,6 +65,13 @@ var CHECKER_EMAILS = [
   'marvin.cocktailsmanila@gmail.com'
 ];
 
+/* CHANGED: staff can add releases/disposables only within 3 hours of the
+   event's creation; after that, only the checker or admin can add */
+function canAddToEvent(ev) {
+  if (isAdmin() || isChecker()) return true;
+  return canEditRecord(ev.ts);
+}
+
 /* CHANGED: staff can Return only within 3 hours of the release; after that,
    returns are done by the checker or admin (pag-uwi ng gamit) */
 function canReturnLine(l) {
@@ -1096,11 +1103,11 @@ function renderEventDetail(id) {
     html += '<input class="search" placeholder="Search released item…" value="' + esc(eventItemSearch) + '" oninput="eventItemSearch=this.value;refreshEvLines()">';
   }
   html += '<div id="evLinesList">' + evLinesHTML(ev, closed) + '</div>';
-  if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button></div>';
+  if (!closed && canAddToEvent(ev)) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openReleasePicker(\'' + ev.id + '\')">＋ Release Item</button></div>';
 
   html += '<div class="section-title">Disposables Used</div>';
   html += usageList(ev, 'toolbox', closed);
-  if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button></div>';
+  if (!closed && canAddToEvent(ev)) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openUsagePicker(\'' + ev.id + '\',\'toolbox\')">＋ Use Disposable</button></div>';
 
   html += '<div class="section-title">Food Used</div>';
   html += usageList(ev, 'food', closed);
@@ -1147,6 +1154,12 @@ function usageList(ev, category, closed) {
 }
 
 function openReleasePicker(evId) {
+  /* CHANGED: past the 3-hour window, only the checker or admin can release */
+  var _ev = getEvent(evId);
+  if (_ev && !canAddToEvent(_ev)) {
+    alert('The 3-hour window has passed — releasing items for this event is now done by the checker or admin.');
+    return;
+  }
   openPicker(
     function (it) { return !isConsumable(it); },
     function (item) { openReleaseQty(evId, item.id); },
@@ -1263,6 +1276,12 @@ function saveEditRelease(evId, lineIdx, remove) {
 }
 
 function openUsagePicker(evId, category) {
+  /* CHANGED: past the 3-hour window, only the checker or admin can add disposables */
+  var _ev = getEvent(evId);
+  if (_ev && category === 'toolbox' && !canAddToEvent(_ev)) {
+    alert('The 3-hour window has passed — adding disposables is now done by the checker or admin.');
+    return;
+  }
   openPicker(
     function (it) { return isConsumable(it) && it.category === category; },
     function (item) { openUsageQty(evId, item.id); },
