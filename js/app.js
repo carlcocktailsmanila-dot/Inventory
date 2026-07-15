@@ -595,11 +595,12 @@ function renderStaffHome() {
   var myName = currentUserName();
   var myKey = myName.toLowerCase();
 
-  /* CHANGED: checkers match by the Checker field, staff by the Lead field */
+  /* CHANGED: checkers share ALL events (they alternate shifts — whoever is
+     on duty does the checking), staff match by the Lead field */
   var chkMode = isChecker();
   var mine = db.events.filter(function (ev) {
-    var field = chkMode ? (ev.checker || '') : (ev.lead || '');
-    return field.trim().toLowerCase() === myKey;
+    if (chkMode) return true;
+    return (ev.lead || '').trim().toLowerCase() === myKey;
   });
   var myOpen = mine.filter(function (e) { return e.status === 'open'; });
   var todayEvents = myOpen.filter(function (e) { return e.date === td; });
@@ -634,11 +635,11 @@ function renderStaffHome() {
     html += '<div class="notice green">Cleared — no pending items or damages this month. Keep it up!</div>';
   }
 
-  html += '<div class="section-title">' + (chkMode ? 'Events I\'m Checking Today' : 'My Events Today') + '</div>';
+  html += '<div class="section-title">' + (chkMode ? 'Events to Check Today' : 'My Events Today') + '</div>';
   html += todayEvents.length ? todayEvents.map(eventCard).join('') : '<div class="empty">No events assigned to you today.</div>';
 
   /* CHANGED: staff can see and search their own past events */
-  html += '<div class="section-title">' + (chkMode ? 'Past Checked Events' : 'My Past Events') + '</div>';
+  html += '<div class="section-title">' + (chkMode ? 'Past Events' : 'My Past Events') + '</div>';
   html += '<input class="search" placeholder="Search my events…" value="' + esc(staffHomeSearch) + '" oninput="staffHomeSearch=this.value;refreshMyEvents()">';
   html += '<div id="myEventList">' + myEventsListHTML() + '</div>';
 
@@ -654,9 +655,8 @@ function myEventsListHTML() {
   var q = staffHomeSearch.trim().toLowerCase();
   var chkMode = isChecker();
   var list = db.events.filter(function (ev) {
-    /* CHANGED: checkers match by the Checker field */
-    var field = chkMode ? (ev.checker || '') : (ev.lead || '');
-    if (field.trim().toLowerCase() !== myKey) return false;
+    /* CHANGED: checkers share all events */
+    if (!chkMode && (ev.lead || '').trim().toLowerCase() !== myKey) return false;
     var isOld = ev.status === 'closed' || (ev.date || '') < td;
     if (!isOld) return false;
     if (!q) return true;
@@ -950,7 +950,8 @@ function eventListHTML() {
   /* CHANGED: staff only see events where they are the lead or the checker.
      Admin sees everything. */
   var pool = db.events;
-  if (!isAdmin()) {
+  /* CHANGED: checkers see all events (shared checking duty) */
+  if (!isAdmin() && !isChecker()) {
     var myKey = currentUserName().toLowerCase();
     pool = pool.filter(function (ev) {
       return (ev.lead || '').trim().toLowerCase() === myKey ||
@@ -1052,8 +1053,9 @@ function saveEventForm(id) {
 function renderEventDetail(id) {
   var ev = getEvent(id);
   if (!ev) return '<div class="empty">Event not found.</div>';
-  /* CHANGED: staff can only open events where they are the lead or the checker */
-  if (!isAdmin()) {
+  /* CHANGED: staff can only open events where they are the lead or the checker;
+     checkers can open any event (shared checking duty) */
+  if (!isAdmin() && !isChecker()) {
     var myKey = currentUserName().toLowerCase();
     if ((ev.lead || '').trim().toLowerCase() !== myKey &&
         (ev.checker || '').trim().toLowerCase() !== myKey) {
