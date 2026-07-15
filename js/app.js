@@ -58,6 +58,18 @@ function canEditRecord(ts) {
 
 /* CHANGED: map each account email to a display name.
    Used to auto-fill the "Lead" field with whoever is logged in. */
+/* CHANGED: checker role — sees only Home (their checking events) and Events.
+   Add each checker's email here (must ALSO be in Firebase Auth + Rules list). */
+var CHECKER_EMAILS = [
+  'rainier.cocktailsmanila@gmail.com'
+];
+
+function isChecker() {
+  if (!currentUser || !currentUser.email) return false;
+  if (isAdmin()) return false;
+  return CHECKER_EMAILS.indexOf(currentUser.email.toLowerCase()) >= 0;
+}
+
 var STAFF_NAMES = {
   'carl.cocktailsmanila@gmail.com': 'Carl',
   'meanne@gmail.com': 'Meanne',
@@ -496,7 +508,8 @@ function render() {
   if (navTab === 'leadDetail') navTab = 'leads';
   document.querySelectorAll('.bottomnav button').forEach(function (b) {
     var t = b.getAttribute('data-tab');
-    b.style.display = (admin || t === 'home' || t === 'events' || t === 'leads') ? '' : 'none';
+    /* CHANGED: checkers see Home + Events only (no Records) */
+    b.style.display = (admin || t === 'home' || t === 'events' || (t === 'leads' && !isChecker())) ? '' : 'none';
     b.classList.toggle('active', t === navTab);
   });
   /* CHANGED: the Records tab is "My Records" for staff, "Records" for admin */
@@ -509,7 +522,7 @@ function render() {
   else if (route.tab === 'eventDetail') v.innerHTML = renderEventDetail(route.eventId);
   else if (route.tab === 'toolbox') v.innerHTML = renderToolbox();
   else if (route.tab === 'food') v.innerHTML = renderFood();
-  else if (route.tab === 'leads') v.innerHTML = admin ? renderLeads() : renderLeadDetail(myLeadName());
+  else if (route.tab === 'leads') v.innerHTML = isChecker() ? renderStaffHome() : (admin ? renderLeads() : renderLeadDetail(myLeadName()));
   else if (route.tab === 'leadDetail') v.innerHTML = renderLeadDetail(route.lead);
 }
 
@@ -579,8 +592,11 @@ function renderStaffHome() {
   var myName = currentUserName();
   var myKey = myName.toLowerCase();
 
+  /* CHANGED: checkers match by the Checker field, staff by the Lead field */
+  var chkMode = isChecker();
   var mine = db.events.filter(function (ev) {
-    return (ev.lead || '').trim().toLowerCase() === myKey;
+    var field = chkMode ? (ev.checker || '') : (ev.lead || '');
+    return field.trim().toLowerCase() === myKey;
   });
   var myOpen = mine.filter(function (e) { return e.status === 'open'; });
   var todayEvents = myOpen.filter(function (e) { return e.date === td; });
@@ -605,7 +621,7 @@ function renderStaffHome() {
     '</div>';
 
   html += '<div class="tiles">' +
-    tile(String(todayEvents.length), 'My events today') +
+    tile(String(todayEvents.length), chkMode ? 'Events to check today' : 'My events today') +
     tile(String(pendTotal), 'Items to return', pendTotal > 0 ? 'bad' : '') +
     tile(String(dmgCount), 'Damaged/lost this month', dmgCount > 0 ? 'bad' : '') +
     tile(money(dmgValue), 'Damage value', dmgValue > 0 ? 'bad' : '') +
@@ -615,11 +631,11 @@ function renderStaffHome() {
     html += '<div class="notice green">Cleared — no pending items or damages this month. Keep it up!</div>';
   }
 
-  html += '<div class="section-title">My Events Today</div>';
+  html += '<div class="section-title">' + (chkMode ? 'Events I\'m Checking Today' : 'My Events Today') + '</div>';
   html += todayEvents.length ? todayEvents.map(eventCard).join('') : '<div class="empty">No events assigned to you today.</div>';
 
   /* CHANGED: staff can see and search their own past events */
-  html += '<div class="section-title">My Past Events</div>';
+  html += '<div class="section-title">' + (chkMode ? 'Past Checked Events' : 'My Past Events') + '</div>';
   html += '<input class="search" placeholder="Search my events…" value="' + esc(staffHomeSearch) + '" oninput="staffHomeSearch=this.value;refreshMyEvents()">';
   html += '<div id="myEventList">' + myEventsListHTML() + '</div>';
 
@@ -633,8 +649,11 @@ function myEventsListHTML() {
   var myKey = currentUserName().toLowerCase();
   var td = today();
   var q = staffHomeSearch.trim().toLowerCase();
+  var chkMode = isChecker();
   var list = db.events.filter(function (ev) {
-    if ((ev.lead || '').trim().toLowerCase() !== myKey) return false;
+    /* CHANGED: checkers match by the Checker field */
+    var field = chkMode ? (ev.checker || '') : (ev.lead || '');
+    if (field.trim().toLowerCase() !== myKey) return false;
     var isOld = ev.status === 'closed' || (ev.date || '') < td;
     if (!isOld) return false;
     if (!q) return true;
@@ -1909,7 +1928,7 @@ document.getElementById('photoInput').addEventListener('change', function () {
 function openMenu() {
   if (fbAuth && !currentUser) { renderLoginScreen(); return; }
   var html = '<h3>Menu</h3>' +
-    (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b> · ' + (isAdmin() ? 'Admin' : 'Event Staff') + '</div>' : '') +
+    (currentUser ? '<div class="hint" style="margin-bottom:10px">Signed in as: <b>' + esc(currentUser.email) + '</b> · ' + (isAdmin() ? 'Admin' : (isChecker() ? 'Checker' : 'Event Staff')) + '</div>' : '') +
     /* CHANGED: admin-only backup tools */
     (isAdmin()
       ? '<button class="menu-item" onclick="openActivityLog()">' + svgIcon('log') + ' Activity Log</button>' +
