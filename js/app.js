@@ -35,7 +35,8 @@ var ALLOWED_EMAILS = [
   'paula.cocktailsmanila@gmail.com',
   'sofia.cocktailsmanila@gmail.com',
   'dan.cocktailsmanila@gmail.com',
-   'rainier.cocktailsmanila@gmail.com'
+  'rainier.cocktailsmanila@gmail.com',
+  'marvin.cocktailsmanila@gmail.com'
 ];
 
 /* CHANGED: role system — emails listed here get FULL ACCESS (admin).
@@ -62,8 +63,9 @@ function canEditRecord(ts) {
 /* CHANGED: checker role — sees only Home (their checking events) and Events.
    Add each checker's email here (must ALSO be in Firebase Auth + Rules list). */
 var CHECKER_EMAILS = [
-  'rainier.cocktailsmanila@gmail.com'
-];
+  'rainier.cocktailsmanila@gmail.com',
+  'marvin.cocktailsmanila@gmail.com'
+   ];
 
 function isChecker() {
   if (!currentUser || !currentUser.email) return false;
