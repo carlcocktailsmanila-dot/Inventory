@@ -52,6 +52,10 @@ function isAdmin() {
    Admins AND checkers can edit anytime — checkers are the ones who fix
    records after the event. Returns are NOT affected by this limit. */
 var EDIT_WINDOW_MS = 3 * 60 * 60 * 1000;
+
+/* CHANGED: penalty policy — every damaged/lost item is charged DOUBLE its
+   price (replacement + penalty). e.g. 1 lost lamp at P100 = P200 damage. */
+var DAMAGE_MULTIPLIER = 2;
 function canEditRecord(ts) {
   if (isAdmin() || isChecker()) return true;
   return !!ts && (Date.now() - ts) < EDIT_WINDOW_MS;
@@ -448,7 +452,7 @@ function eventDamageValue(ev) {
   var t = 0;
   (ev.lines || []).forEach(function (l) {
     var it = getItem(l.itemId);
-    if (it) t += ((l.damaged || 0) + (l.lost || 0)) * (it.price || 0);
+    if (it) t += ((l.damaged || 0) + (l.lost || 0)) * (it.price || 0) * DAMAGE_MULTIPLIER;
   });
   return t;
 }
@@ -2214,7 +2218,7 @@ function exportLinesCSV() {
       var it = getItem(l.itemId);
       rows.push([ev.name, ev.date || '', ev.lead || '', it ? it.name : '(deleted)',
         l.out || 0, l.returned || 0, l.damaged || 0, l.lost || 0, linePending(l),
-        ((l.damaged || 0) + (l.lost || 0)) * (it ? (it.price || 0) : 0)]);
+        ((l.damaged || 0) + (l.lost || 0)) * (it ? (it.price || 0) : 0) * DAMAGE_MULTIPLIER]);
     });
   });
   downloadCSV('released-items', rows);
