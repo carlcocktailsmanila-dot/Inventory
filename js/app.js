@@ -34,7 +34,8 @@ var ALLOWED_EMAILS = [
   'patrick.cocktailsmanila@gmail.com',
   'paula.cocktailsmanila@gmail.com',
   'sofia.cocktailsmanila@gmail.com',
-  'dan.cocktailsmanila@gmail.com'
+  'dan.cocktailsmanila@gmail.com',
+   'rainier.cocktailsmanila@gmail.com'
 ];
 
 /* CHANGED: role system — emails listed here get FULL ACCESS (admin).
