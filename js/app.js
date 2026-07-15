@@ -49,10 +49,11 @@ function isAdmin() {
 }
 
 /* CHANGED: staff can only edit records within 3 hours of encoding them.
-   Admins can edit anytime. Returns are NOT affected by this limit. */
+   Admins AND checkers can edit anytime — checkers are the ones who fix
+   records after the event. Returns are NOT affected by this limit. */
 var EDIT_WINDOW_MS = 3 * 60 * 60 * 1000;
 function canEditRecord(ts) {
-  if (isAdmin()) return true;
+  if (isAdmin() || isChecker()) return true;
   return !!ts && (Date.now() - ts) < EDIT_WINDOW_MS;
 }
 
@@ -1111,7 +1112,7 @@ function renderEventDetail(id) {
 
   html += '<div class="section-title">Food Used</div>';
   html += usageList(ev, 'food', closed);
-  if (!closed) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button></div>';
+  if (!closed && canAddToEvent(ev)) html += '<div style="margin:6px 0 14px;text-align:center"><button class="btn btn-sm btn-primary" onclick="openUsagePicker(\'' + ev.id + '\',\'food\')">＋ Use Food</button></div>';
 
   if (!closed) {
     html += '<div class="event-actions"><div class="btn-row">' +
@@ -1276,10 +1277,11 @@ function saveEditRelease(evId, lineIdx, remove) {
 }
 
 function openUsagePicker(evId, category) {
-  /* CHANGED: past the 3-hour window, only the checker or admin can add disposables */
+  /* CHANGED: past the 3-hour window, only the checker or admin can add
+     disposables or food */
   var _ev = getEvent(evId);
-  if (_ev && category === 'toolbox' && !canAddToEvent(_ev)) {
-    alert('The 3-hour window has passed — adding disposables is now done by the checker or admin.');
+  if (_ev && !canAddToEvent(_ev)) {
+    alert('The 3-hour window has passed — adding items is now done by the checker or admin.');
     return;
   }
   openPicker(
