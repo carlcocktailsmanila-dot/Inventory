@@ -65,6 +65,13 @@ var CHECKER_EMAILS = [
   'marvin.cocktailsmanila@gmail.com'
 ];
 
+/* CHANGED: staff can Return only within 3 hours of the release; after that,
+   returns are done by the checker or admin (pag-uwi ng gamit) */
+function canReturnLine(l) {
+  if (isAdmin() || isChecker()) return true;
+  return canEditRecord(l.ts);
+}
+
 function isChecker() {
   if (!currentUser || !currentUser.email) return false;
   if (isAdmin()) return false;
@@ -1105,9 +1112,10 @@ function renderEventDetail(id) {
       /* CHANGED: Save button — everything saves automatically, but this gives
          checkers a clear "done encoding" action that is NOT Close Event */
       '<button class="btn btn-soft" onclick="saveAndExitEvent()">Save</button>' +
-      '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">Close Event</button>' +
+      /* CHANGED: only the checker or admin can close an event */
+      (isAdmin() || isChecker() ? '<button class="btn btn-primary" onclick="closeEvent(\'' + ev.id + '\')">Close Event</button>' : '') +
     '</div>' +
-    '<div class="hint" style="text-align:center;margin-top:6px">Save = keep encoding later. Close Event = the event is finished and all items are accounted for.</div></div>' +
+    '<div class="hint" style="text-align:center;margin-top:6px">' + (isAdmin() || isChecker() ? 'Save = keep encoding later. Close Event = the event is finished and all items are accounted for.' : 'Save = keep encoding later. Closing the event is done by the checker or admin.') + '</div></div>' +
     /* CHANGED: spacer so the last cards can scroll above the fixed bar */
     '<div style="height:120px"></div>';
   } else if (isAdmin()) {
@@ -1180,6 +1188,11 @@ function doRelease(evId, itemId) {
 
 function openReturnForm(evId, lineIdx) {
   var ev = getEvent(evId); var l = ev.lines[lineIdx];
+  /* CHANGED: past the 3-hour window, only the checker or admin can return */
+  if (!canReturnLine(l)) {
+    alert('The 3-hour window has passed — returns for this item are now done by the checker or admin.');
+    return;
+  }
   var it = getItem(l.itemId);
   var p = linePending(l);
   var html = '<h3>Return: ' + esc(it ? it.name : '') + '</h3>' +
@@ -1332,7 +1345,7 @@ function evLinesHTML(ev, closed) {
       '<div class="grow"><div class="item-name">' + esc(name2) + '</div>' +
       (l.notes ? '<div class="item-meta">' + esc(l.notes) + '</div>' : '') + '</div>' +
       (!closed ? (canEditRecord(l.ts) ? '<button class="btn btn-sm" style="margin-right:6px" onclick="openEditRelease(\'' + ev.id + '\',' + idx + ')" title="Edit released quantity">' + svgIcon('edit', 14) + '</button>' : '') +
-                 '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Return</button>' : '') +
+                 (canReturnLine(l) ? '<button class="btn btn-sm btn-primary" onclick="openReturnForm(\'' + ev.id + '\',' + idx + ')">Return</button>' : '') : '') +
       '</div>' +
       '<div class="line-grid">' +
         '<div><div class="lg-num">' + l.out + '</div><div class="lg-label">OUT</div></div>' +
@@ -1382,6 +1395,11 @@ function resetAllEvents() {
 }
 
 function closeEvent(evId) {
+  /* CHANGED: only the checker or admin can close an event */
+  if (!isAdmin() && !isChecker()) {
+    alert('Only the checker or admin can close an event.');
+    return;
+  }
   var ev = getEvent(evId);
   var pend = eventPending(ev);
   if (pend > 0) {
