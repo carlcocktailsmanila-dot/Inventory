@@ -10,14 +10,17 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="css/style.css">
-<!-- FIX #2: mobile scroll stability — pinipigilan yung left-right wiggle at yung pag-bounce ng buong screen -->
+<!-- FIX #2: mobile scroll stability — pinipigilan yung left-right wiggle at yung pag-bounce ng buong screen.
+     CHANGED: uses overflow-x clip (with hidden fallback) — the html+body hidden
+     combo breaks mouse-wheel scrolling on desktop Chrome -->
 <style>
   html, body {
-    overflow-x: hidden;
     max-width: 100vw;
-    overscroll-behavior-y: none;
+    overflow-x: hidden;
+    overflow-x: clip;
   }
   body {
+    overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: pan-y;
   }
